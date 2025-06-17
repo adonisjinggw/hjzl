@@ -36,10 +36,17 @@ const headersContent = `# 静态资源缓存
 # JavaScript和CSS文件
 /*.js
   Cache-Control: public, max-age=31536000, immutable
+  Content-Type: application/javascript; charset=utf-8
+  X-Content-Type-Options: nosniff
+
+/*.mjs
+  Cache-Control: public, max-age=31536000, immutable
+  Content-Type: application/javascript; charset=utf-8
   X-Content-Type-Options: nosniff
 
 /*.css
   Cache-Control: public, max-age=31536000, immutable
+  Content-Type: text/css; charset=utf-8
   X-Content-Type-Options: nosniff
 
 # HTML文件 - 不缓存确保更新及时

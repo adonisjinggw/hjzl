@@ -4,6 +4,7 @@ import { defineConfig, loadEnv } from 'vite';
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
     return {
+      base: '/', // 确保使用绝对路径，适配Cloudflare Pages
       define: {
         'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || 'demo_mode'),
         'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || 'demo_mode'),
