@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 运行  i  # 🌟 幻境之旅生成器
 
 一个融合真实旅行规划与虚拟幻境探索的AI驱动旅游内容生成平台。通过智能算法为用户提供个性化的旅行体验、社交媒体文案、短视频脚本和场景化图像。
@@ -133,7 +132,7 @@ npm run build
 
 2. **配置密钥格式**
    - 密钥格式：`AccessKeyId:SecretAccessKey`
-   - 例如：`YOUR_ACCESS_KEY_ID:YOUR_SECRET_ACCESS_KEY`
+   - 例如：`您的AccessKeyId:您的SecretAccessKey`
 
 3. **API端点说明**
    - 系统使用正确的火山引擎端点：`https://visual.volcengineapi.com`
@@ -2007,7 +2006,7 @@ OpenMemory MCP服务器提供4个标准化记忆工具：
 
 ### 问题分析与发现
 **用户截图信息分析**：
-- Access Key ID: `YOUR_ACCESS_KEY_ID`
+- Access Key ID: `您的AccessKeyId`
 - 自定义端点URL: `https://api.example.com/v1` (示例URL，非真实端点)
 - VPN状态: 用户提到"当前电脑开启了vpn"
 - 错误现象: 网络连接失败，API测试无法成功
@@ -3059,7 +3058,3 @@ const selectTextGenerationService = () => {
 4. **开发效率**：模块化设计降低维护成本，类型安全减少错误
 
 这次更新标志着项目从概念验证阶段进入了生产就绪的企业级应用阶段。
-=======
-# 0001
-0011
->>>>>>> 7cc84dd4d7587217619f2cdd04dbb1d3278eee47

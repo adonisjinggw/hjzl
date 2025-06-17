@@ -1,0 +1,38 @@
+{
+  "models": {
+    "main": {
+      "provider": "openrouter",
+      "modelId": "openai/gpt-4o-mini",
+      "maxTokens": 120000,
+      "temperature": 0.2
+    },
+    "research": {
+      "provider": "google",
+      "modelId": "gemini-pro",
+      "maxTokens": 8700,
+      "temperature": 0.1
+    },
+    "fallback": {
+      "provider": "openai",
+      "modelId": "gpt-4o-mini",
+      "maxTokens": 8192,
+      "temperature": 0.1
+    }
+  },
+  "global": {
+    "logLevel": "info",
+    "debug": false,
+    "defaultSubtasks": 5,
+    "defaultPriority": "medium",
+    "projectName": "幻境之旅生成器",
+    "userId": "user_001"
+  },
+  "project": {
+    "name": "幻境之旅生成器",
+    "description": "基于 React + TypeScript + Vite 的 AI 图像和文本生成应用",
+    "version": "1.0.0",
+    "type": "ai-app",
+    "framework": "react",
+    "language": "typescript"
+  }
+}

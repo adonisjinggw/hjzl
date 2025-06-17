@@ -1,0 +1,11 @@
+# Task ID: 3
+# Title: 用户界面核心组件开发
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: 开发应用的核心UI组件和界面框架
+# Details:
+使用Tailwind CSS开发现代化的用户界面组件，包括：导航栏、侧边栏、主要内容区域、模态框等。确保界面响应式设计，支持深色/浅色主题切换。
+
+# Test Strategy:
+验证UI组件在不同屏幕尺寸下正常显示，主题切换功能正常工作。

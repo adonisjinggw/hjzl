@@ -1,0 +1,48 @@
+{
+  "name": "幻境之旅生成器",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build && node scripts/post-build.js",
+    "build:unified": "node scripts/build-unified.js",
+    "build:only": "vite build",
+    "preview": "vite preview",
+    "deploy": "npm run build:unified && npx wrangler pages deploy dist --project-name=huanjing-zhilv-generator",
+    "deploy:github": "npm run build:unified",
+    "deploy:preview": "npm run build:unified && npx wrangler pages deploy dist --project-name=huanjing-zhilv-generator --branch=preview",
+    "taskmaster": "cross-env OPENAI_API_KEY=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 GOOGLE_API_KEY=AIzaSyD6WqqaHAZfA6mmHIFLCzmP-ywx7O59AJsE OPENROUTER_API_KEY=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 task-master-ai",
+    "taskmaster:mcp": "cross-env OPENAI_API_KEY=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 GOOGLE_API_KEY=AIzaSyD6WqqaHAZfA6mmHIFLCzmP-ywx7O59AJsE OPENROUTER_API_KEY=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 task-master-mcp",
+    "taskmaster:init": "cross-env OPENAI_API_KEY=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 task-master-ai init",
+    "taskmaster:status": "cross-env OPENAI_API_KEY=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 task-master-ai status",
+    "backup:safe": "node scripts/safe-github-backup.js",
+    "backup:quick": "git add . && git commit -m \"📦 快速本地备份\" && echo \"✅ 本地备份完成\""
+  },
+  "dependencies": {
+    "@google/genai": "^1.3.0",
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "@playwright/test": "^1.52.0",
+    "@stagewise/toolbar-react": "^0.4.4",
+    "@types/crypto-js": "^4.2.2",
+    "@types/leaflet": "^1.9.18",
+    "crypto-js": "^4.2.0",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.511.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "zod": "^3.25.58"
+  },
+  "devDependencies": {
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.5",
+    "@vitejs/plugin-react": "^4.5.1",
+    "cross-env": "^7.0.3",
+    "task-master-ai": "^0.16.2",
+    "terser": "^5.41.0",
+    "typescript": "~5.7.2",
+    "vite": "^6.2.0",
+    "wrangler": "^4.19.1"
+  }
+}

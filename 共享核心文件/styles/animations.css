@@ -1,0 +1,327 @@
+/**
+ * 幻境之旅生成器 - 动画样式
+ * 包含虚拟幻境和真实旅行的背景动画效果
+ */
+
+/* ====== Tailwind 自定义动画扩展 ====== */
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+    opacity: 0.3;
+  }
+  25% {
+    transform: translateY(-20px) rotate(90deg);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translateY(-40px) rotate(180deg);
+    opacity: 1;
+  }
+  75% {
+    transform: translateY(-20px) rotate(270deg);
+    opacity: 0.7;
+  }
+}
+
+/* ====== 基础背景样式 ====== */
+.travel-bg-default,
+.travel-bg-fantasy,
+.travel-bg-realistic {
+  position: relative;
+  transition: all 0.8s ease-in-out;
+}
+
+/* ====== 虚拟幻境模式 - 简洁渐变背景 ====== */
+.travel-bg-fantasy {
+  background: linear-gradient(-45deg, #1e1b4b, #312e81, #3730a3, #1d4ed8);
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
+
+/* ====== 真实旅行模式 - 简洁渐变背景 ====== */
+.travel-bg-realistic {
+  background: linear-gradient(-45deg, #0c4a6e, #0369a1, #0284c7, #0ea5e9);
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
+
+/* ====== 默认模式 - 简洁渐变背景 ====== */
+.travel-bg-default {
+  background: linear-gradient(-45deg, #0f172a, #1e293b, #334155, #475569);
+  background-size: 400% 400%;
+  animation: gradient 15s ease infinite;
+}
+
+.travel-bg-default::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url("data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='1920' height='1080' viewBox='0 0 1920 1080'><defs><radialGradient id='starGlow' cx='50%' cy='50%' r='50%'><stop offset='0%' style='stop-color:%23ffffff;stop-opacity:0.9'/><stop offset='100%' style='stop-color:%23ffffff;stop-opacity:0'/></radialGradient></defs><rect width='100%' height='100%' fill='%230f172a'/><circle cx='200' cy='150' r='2' fill='url(%23starGlow)'/><circle cx='350' cy='100' r='1.5' fill='%23ffffff' opacity='0.8'/><circle cx='500' cy='200' r='2' fill='%23ffd700' opacity='0.9'/><circle cx='650' cy='80' r='1.5' fill='%23ffffff' opacity='0.7'/><circle cx='800' cy='180' r='2.5' fill='%23ffd700' opacity='1'/><circle cx='950' cy='120' r='1.5' fill='%23ffffff' opacity='0.8'/><circle cx='1100' cy='220' r='2' fill='%2387ceeb' opacity='0.9'/><circle cx='1250' cy='90' r='1.5' fill='%23ffffff' opacity='0.7'/><circle cx='1400' cy='160' r='2' fill='%23ffd700' opacity='0.9'/><circle cx='1550' cy='110' r='1.5' fill='%23ffffff' opacity='0.8'/><circle cx='1700' cy='190' r='2.5' fill='%2387ceeb' opacity='1'/><circle cx='150' cy='400' r='1.5' fill='%23ffffff' opacity='0.6'/><circle cx='450' cy='350' r='2' fill='%23ff69b4' opacity='0.8'/><circle cx='750' cy='420' r='1.5' fill='%23ffffff' opacity='0.7'/><circle cx='1050' cy='380' r='2' fill='%23ffd700' opacity='0.9'/><circle cx='1350' cy='430' r='1.5' fill='%23ffffff' opacity='0.6'/><circle cx='1650' cy='370' r='2.5' fill='%2387ceeb' opacity='0.9'/><circle cx='250' cy='600' r='1.5' fill='%23ffffff' opacity='0.7'/><circle cx='550' cy='550' r='2' fill='%23ff69b4' opacity='0.8'/><circle cx='850' cy='620' r='1.5' fill='%23ffffff' opacity='0.6'/><circle cx='1150' cy='580' r='2' fill='%23ffd700' opacity='0.9'/><circle cx='1450' cy='630' r='1.5' fill='%23ffffff' opacity='0.7'/><circle cx='1750' cy='570' r='2.5' fill='%2387ceeb' opacity='1'/><circle cx='100' cy='300' r='1' fill='%23ffffff' opacity='0.5'/><circle cx='1800' cy='300' r='1' fill='%23ffffff' opacity='0.5'/><circle cx='960' cy='50' r='1' fill='%23ffd700' opacity='0.7'/><path d='M300,250 L305,260 L315,260 L307,268 L310,278 L300,272 L290,278 L293,268 L285,260 L295,260 Z' fill='%23ffd700' opacity='0.8'/><path d='M1500,300 L1503,306 L1509,306 L1504,310 L1506,316 L1500,313 L1494,316 L1496,310 L1491,306 L1497,306 Z' fill='%23ffd700' opacity='0.8'/></svg>");
+  background-size: cover;
+  background-position: center;
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.starfield {
+  pointer-events: none;
+  z-index: 1;
+}
+
+.star {
+  position: absolute;
+  width: 2px;
+  height: 2px;
+  background: white;
+  border-radius: 50%;
+  animation: twinkle 3s infinite ease-in-out;
+}
+
+.star:nth-child(2n) {
+  width: 1px;
+  height: 1px;
+  animation-duration: 2s;
+}
+
+.star:nth-child(3n) {
+  width: 3px;
+  height: 3px;
+  animation-duration: 4s;
+  background: #ffd700;
+}
+
+.star:nth-child(4n) {
+  background: #87ceeb;
+  animation-duration: 2.5s;
+}
+
+.star:nth-child(5n) {
+  background: #ff69b4;
+  animation-duration: 3.5s;
+}
+
+@keyframes twinkle {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.2);
+  }
+}
+
+/* ====== 响应式调整 ====== */
+@media (max-width: 768px) {
+  .star {
+    width: 1px;
+    height: 1px;
+  }
+}
+
+/* ====== 通用动画优化 ====== */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin-slow,
+  .animate-float {
+    animation: none;
+  }
+  
+  .travel-bg-default {
+    animation: none;
+  }
+}
+
+/* ====== 动画性能优化 ====== */
+.starfield {
+  will-change: transform;
+  transform: translateZ(0);
+}
+
+.star {
+  will-change: transform, opacity;
+  transform: translateZ(0);
+}
+
+/* ====== 内容层模糊效果 ====== */
+.backdrop-blur-sm {
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+/* ====== 过渡动画 ====== */
+.travel-mode-transition {
+  transition: all 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ====== 渐变动画 ====== */
+@keyframes gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* ====== 加载时的淡入效果 ====== */
+.fade-in {
+  animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ====== 悬停效果增强 ====== */
+.glass-effect {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.glass-effect:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+/* ====== 加载动画 ====== */
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* ====== 缩放动画 ====== */
+.scale-in {
+  animation: scaleIn 0.3s ease-out;
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* ====== 脉冲动画 ====== */
+.pulse {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* ====== 弹跳动画 ====== */
+.bounce {
+  animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+  0%, 20%, 50%, 80%, 100% {
+    transform: translateY(0);
+  }
+  40% {
+    transform: translateY(-10px);
+  }
+  60% {
+    transform: translateY(-5px);
+  }
+}
+
+/* ====== 滑入动画 ====== */
+.slide-in-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ====== 特殊效果 ====== */
+.glow {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  animation: glow 1.5s ease-in-out infinite alternate;
+}
+
+@keyframes glow {
+  from {
+    box-shadow: 0 0 20px rgba(59, 130, 246, 0.5);
+  }
+  to {
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.8);
+  }
+}
+
+/* ====== 响应式动画调整 ====== */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+} 

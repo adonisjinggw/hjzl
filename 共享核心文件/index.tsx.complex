@@ -1,0 +1,39 @@
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import App from './App';
+
+const rootElement = document.getElementById('root');
+if (!rootElement) {
+  throw new Error("找不到根元素挂载React应用");
+}
+
+const root = ReactDOM.createRoot(rootElement);
+root.render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>
+);
+
+// 集成 stagewise 开发工具栏 - 仅在开发环境下加载
+if (process.env.NODE_ENV === 'development') {
+  // 动态导入 stagewise 工具栏，避免生产环境包含相关代码
+  import('@stagewise/toolbar-react').then(({ StagewiseToolbar }) => {
+    // 创建工具栏配置
+    const stagewiseConfig = {
+      plugins: []
+    };
+    
+    // 创建独立的DOM容器用于工具栏
+    const toolbarContainer = document.createElement('div');
+    toolbarContainer.id = 'stagewise-toolbar-container';
+    document.body.appendChild(toolbarContainer);
+    
+    // 为工具栏创建独立的React根节点，避免与主应用冲突
+    import('react-dom/client').then(({ createRoot }) => {
+      const toolbarRoot = createRoot(toolbarContainer);
+      toolbarRoot.render(
+        <StagewiseToolbar config={stagewiseConfig} />
+      );
+    }).catch(console.error);
+  }).catch(console.error);
+}

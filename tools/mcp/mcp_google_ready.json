@@ -1,0 +1,46 @@
+{
+  "mcpServers": {
+    "browser-tools": {
+      "command": "npx",
+      "args": [
+        "@agentdeskai/browser-tools-mcp@latest"
+      ],
+      "env": {
+        "BROWSER_TOOLS_HOST": "127.0.0.1",
+        "BROWSER_TOOLS_PORT": "3025"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@executeautomation/playwright-mcp-server"
+      ]
+    },
+    "mcp-feedback-collector": {
+      "command": "node",
+      "args": [
+        "C:/Users/Administrator/Downloads/24小时自动抓热点技巧/node_modules/mcp-feedback-collector/dist/cli.js"
+      ],
+      "env": {
+        "MCP_API_KEY": "sk-ANAnmUDpzgDgvVwi2wupoxS0tEXviF4MzbhEsQAh9Wv2CgQW",
+        "MCP_API_BASE_URL": "https://api.ssopen.top",
+        "MCP_DEFAULT_MODEL": "grok-3",
+        "MCP_WEB_PORT": "5050",
+        "MCP_DIALOG_TIMEOUT": "60000",
+        "NODE_ENV": "production"
+      }
+    },
+    "openmemory": {
+      "command": "python",
+      "args": [
+        "C:/OpenMemory/openmemory_mcp_server.py"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "在这里填入您的谷歌API密钥",
+        "USE_GOOGLE_API": "true",
+        "GOOGLE_API_KEY": "在这里填入您的谷歌API密钥"
+      }
+    }
+  }
+} 

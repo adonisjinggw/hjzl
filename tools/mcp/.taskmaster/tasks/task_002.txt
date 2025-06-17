@@ -1,0 +1,11 @@
+# Task ID: 2
+# Title: AI服务商统一接口设计
+# Status: pending
+# Dependencies: 1
+# Priority: high
+# Description: 设计并实现统一的AI服务商接口抽象层
+# Details:
+创建统一的AI服务商接口，支持18个图像生成服务商和16个文本生成服务商。实现服务商的注册、配置、调用等核心功能。设计智能降级和重试机制。
+
+# Test Strategy:
+测试接口能够正确调用不同服务商，验证降级机制在服务商失效时正常工作。

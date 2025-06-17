@@ -1,0 +1,44 @@
+{
+  "templates": {
+    "bug_fix": {
+      "name": "Bug修复任务",
+      "description": "修复应用程序中的错误",
+      "priority": "high",
+      "estimatedTime": "2-4小时",
+      "steps": [
+        "分析问题",
+        "定位错误源",
+        "实施修复",
+        "测试验证",
+        "文档更新"
+      ]
+    },
+    "feature_development": {
+      "name": "功能开发任务",
+      "description": "开发新功能或增强现有功能",
+      "priority": "medium",
+      "estimatedTime": "4-8小时",
+      "steps": [
+        "需求分析",
+        "设计方案",
+        "编码实现",
+        "单元测试",
+        "集成测试",
+        "文档编写"
+      ]
+    },
+    "refactoring": {
+      "name": "代码重构任务",
+      "description": "改进代码结构和性能",
+      "priority": "low",
+      "estimatedTime": "1-3小时",
+      "steps": [
+        "识别重构点",
+        "制定重构计划",
+        "执行重构",
+        "测试验证",
+        "性能对比"
+      ]
+    }
+  }
+}

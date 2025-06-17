@@ -1,0 +1,1762 @@
+import { useState, useCallback, useEffect } from 'react';
+import { Footer } from './components/Footer';
+import { ResultsDisplay } from './components/ResultsDisplay';
+import { LoadingSpinner } from './components/LoadingSpinner';
+import PerformanceMonitor from './components/PerformanceMonitor';
+import FeishuConfigModal from './components/FeishuConfigModal';
+import { executeFeishuWorkflow, type FeishuConfig } from './services/feishuTableService';
+import { InitialModal } from './components/InitialModal';
+import { SettingsModal } from './components/SettingsModal';
+import { FreeApiPanel } from './components/FreeApiPanel';
+import { ApiConfigModal } from './components/ApiConfigModal';
+import { ApiMonitorPanel } from './components/ApiMonitorPanel';
+import { FreeApiKeyHelper } from './components/FreeApiKeyHelper';
+import MCPServicePanel from './components/MCPServicePanel';
+import UserPanel from './components/UserPanel';
+import userService from './services/userService';
+import type { 
+  UserInputs, 
+  GeneratedScenario, 
+  GeneratedSocialMediaCopy, 
+  GeneratedVideoScript, 
+  GeneratedImageData, 
+  FakeEngagementData, 
+  FakeComment,
+  GeneratedRealisticItinerary,
+  ImageApiProvider,
+  TravelReflectionCard,
+  ApiConfig,
+  ApiServiceStatus,
+  User
+} from './types';
+import { 
+  generateTravelScenario, 
+  generateSocialMediaCopy, 
+  generateVideoScript, 
+  generateFakeComments,
+  generateRealisticTravelItinerary,
+  generateRealisticSocialMediaCopy,
+  generateRealisticVideoScript,
+  generateRealisticFakeComments
+} from './services/geminiService';
+
+// 内置免费API服务导入
+import {
+  generateBuiltinFreeComments,
+  generateTravelReflectionCards
+} from './services/builtinFreeApiService';
+
+import { DEFAULT_USER_NAME } from './constants';
+import { MapGuide } from './components/MapGuide';
+import { 
+  Settings, User as UserIcon,
+  LogOut, Map, Activity
+} from 'lucide-react';
+
+// 导入新的智能文字生成服务
+import {
+  generateIntelligentScenario,
+  generateIntelligentItinerary,
+  generateIntelligentSocialMediaCopy,
+  generateIntelligentVideoScript
+} from './services/textGenerationService';
+import { generateIntelligentPhoto } from './services/imageGenerationService';
+
+// 导入超高速批量图片生成服务
+// 🚀 导入终极优化器
+import { generateImagesUltraFast } from './services/ultimateImageOptimizer';
+import { 
+  generateImagesBatch, 
+  getImageGenerationStats
+} from './services/fastBatchImageService';
+
+type AppPhase = 'functionSelection';
+
+/**
+ * 幻境之旅生成器主应用组件
+ * 管理整个应用的状态和用户流程，集成用户系统
+ */
+const App = () => {
+  // 应用阶段状态 - 只保留功能选择页面
+  const [currentPhase, setCurrentPhase] = useState<AppPhase>('functionSelection');
+  
+  // 添加选择的旅行模式状态
+  const [selectedTravelMode, setSelectedTravelMode] = useState<'fictional' | 'realistic' | null>(null);
+  
+  // 用户系统状态
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showUserPanel, setShowUserPanel] = useState(false);
+  const [usageInfo, setUsageInfo] = useState<{
+    canUse: boolean;
+    remainingToday: number;
+    nextResetTime: string;
+  }>({ canUse: true, remainingToday: 0, nextResetTime: '' });
+  
+  // 主要应用状态
+  const [userInputs, setUserInputs] = useState<UserInputs | null>(null);
+  const [generatedScenario, setGeneratedScenario] = useState<GeneratedScenario | null>(null);
+  const [generatedItinerary, setGeneratedItinerary] = useState<GeneratedRealisticItinerary | null>(null);
+  const [generatedSocialMediaCopy, setGeneratedSocialMediaCopy] = useState<GeneratedSocialMediaCopy | null>(null);
+  const [generatedVideoScript, setGeneratedVideoScript] = useState<GeneratedVideoScript | null>(null);
+  const [generatedImageData, setGeneratedImageData] = useState<GeneratedImageData | null>(null);
+  const [generatedImagesList, setGeneratedImagesList] = useState<GeneratedImageData[]>([]);
+  const [fakeEngagementData, setFakeEngagementData] = useState<FakeEngagementData | null>(null);
+  const [fakeComments, setFakeComments] = useState<FakeComment[]>([]);
+  const [travelReflectionCards, setTravelReflectionCards] = useState<TravelReflectionCard[]>([]);
+  
+  // UI状态
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showInitialModal, setShowInitialModal] = useState(false);
+  const [showSettingsModal, setShowSettingsModal] = useState(false);
+  const [showFreeApiPanel, setShowFreeApiPanel] = useState(false);
+  const [showApiConfigModal, setShowApiConfigModal] = useState(false);
+  const [showApiMonitorPanel, setShowApiMonitorPanel] = useState(false);
+  const [showMapGuide, setShowMapGuide] = useState(false);
+  const [showFreeApiKeyHelper, setShowFreeApiKeyHelper] = useState(false);
+  const [showMCPPanel, setShowMCPPanel] = useState(false);
+  const [usingBuiltinFreeApi, setUsingBuiltinFreeApi] = useState(true);
+
+  // API配置状态
+  const [apiConfig, setApiConfig] = useState<ApiConfig>({
+    textGeneration: {
+      enablePaid: false,
+      provider: 'builtin_free',
+      apiKey: undefined,
+      customEndpoint: undefined
+    },
+    imageGeneration: {
+      enablePaid: false,
+      provider: 'builtin_free',
+      apiKey: undefined,
+      customEndpoint: undefined
+    },
+    global: {
+      preferPaidServices: false,
+      fallbackToFree: true
+    }
+  });
+
+  // API服务状态
+  const [apiServiceStatus, setApiServiceStatus] = useState<ApiServiceStatus>({
+    textGeneration: {
+      isActive: true,
+      provider: 'builtin_free',
+      isPaid: false
+    },
+    imageGeneration: {
+      isActive: true,
+      provider: 'builtin_free',
+      isPaid: false
+    }
+  });
+
+  // 添加错误状态追踪
+  const [appError, setAppError] = useState<string | null>(null);
+
+  // 添加生成步骤跟踪状态
+  const [currentGenerationStep, setCurrentGenerationStep] = useState('');
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const totalGenerationSteps = 8; // 总共8个生成步骤
+
+  // 新增：每张图片的刷新错误状态
+  const [refreshError, setRefreshError] = useState<string[]>([]);
+  const [refreshingIndexes, setRefreshingIndexes] = useState<number[]>([]);
+
+  // 🚀 性能监控状态
+  const [showPerformanceMonitor, setShowPerformanceMonitor] = useState(false);
+  const [performanceProgress, setPerformanceProgress] = useState(0);
+  const [performancePhase, setPerformancePhase] = useState('');
+  const [performanceMetrics, setPerformanceMetrics] = useState({
+    totalGenerated: 0,
+    averageTime: 0,
+    cacheHitRate: 0,
+    networkQuality: 'medium',
+    currentStatus: '待机',
+    speedImprovement: 1
+  });
+
+  // 🚀 飞书多维表格集成状态
+  const [isFeishuConfigOpen, setIsFeishuConfigOpen] = useState(false);
+  const [feishuConfig, setFeishuConfig] = useState<FeishuConfig | null>(null);
+  const [isFeishuWorkflowEnabled, setIsFeishuWorkflowEnabled] = useState(false);
+
+  // 生成步骤定义
+  const getGenerationSteps = (isVirtual: boolean) => {
+    if (isVirtual) {
+      return [
+        '🎭 构思虚拟场景概念',
+        '🌟 生成奇幻世界设定', 
+        '📱 创作社交媒体文案',
+        '🎬 编写视频脚本分镜',
+        '🎨 生成场景配图',
+        '💬 制作用户评论',
+        '📊 计算互动数据',
+        '✨ 生成感言卡片'
+      ];
+    } else {
+      return [
+        '🗺️ 分析旅行目的地',
+        '📅 制定详细行程规划',
+        '📱 撰写推广文案',
+        '🎬 创建视频脚本',
+        '📷 生成旅行图片',
+        '💬 模拟用户反馈',
+        '📈 统计互动数据',
+        '🎭 制作回忆卡片'
+      ];
+    }
+  };
+
+  /**
+   * 获取图像服务商的友好显示名称
+   */
+  const getImageProviderDisplayName = (provider: string): string => {
+    const providerMap: { [key: string]: string } = {
+      'jiemeng': '火山引擎即梦AI',
+      'runninghub': 'RunningHub AI',
+      'gemini': 'Google Gemini',
+      'pollinations': 'Pollinations.AI',
+      'builtin_free': '内置免费服务',
+      'deepai': 'DeepAI',
+      'huggingface': 'HuggingFace',
+      'midjourney': 'Midjourney'
+    };
+    return providerMap[provider] || provider;
+  };
+
+  // 更新生成步骤的辅助函数
+  const updateGenerationStep = useCallback((stepIndex: number, isVirtual: boolean = true) => {
+    const steps = getGenerationSteps(isVirtual);
+    setCurrentStepIndex(stepIndex);
+    setCurrentGenerationStep(steps[stepIndex] || '正在生成内容...');
+  }, []);
+
+  // 错误边界处理
+  useEffect(() => {
+    const handleError = (event: ErrorEvent) => {
+      console.error('🚨 应用错误:', event.error);
+      setAppError(`应用错误: ${event.error?.message || '未知错误'}`);
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error('🚨 未处理的Promise拒绝:', event.reason);
+      setAppError(`Promise错误: ${event.reason?.message || '未知错误'}`);
+    };
+
+    window.addEventListener('error', handleError);
+    window.addEventListener('unhandledrejection', handleUnhandledRejection);
+
+    return () => {
+      window.removeEventListener('error', handleError);
+      window.removeEventListener('unhandledrejection', handleUnhandledRejection);
+    };
+  }, []);
+
+  // 调试当前状态
+  useEffect(() => {
+    console.log('🔍 当前应用状态:', {
+      currentPhase,
+      apiConfig,
+      apiServiceStatus,
+      usingBuiltinFreeApi,
+      currentUser,
+      usageInfo
+    });
+  }, [currentPhase, apiConfig, apiServiceStatus, usingBuiltinFreeApi, currentUser, usageInfo]);
+
+  // 初始化用户系统
+  useEffect(() => {
+    const initializeUserSystem = () => {
+      // 获取当前用户
+      const user = userService.getCurrentUser();
+      setCurrentUser(user);
+      
+      // 更新使用次数信息
+      const usage = userService.checkUsageLimit(user?.id);
+      setUsageInfo(usage);
+      
+      console.log('🔧 用户系统初始化:', { user, usage });
+
+      // 🔑 自动创建管理员账号（开发模式）
+      if (!user || user.tier !== 'admin') {
+        console.log('🔧 检测到无管理员账号，正在创建...');
+        userService.createAdminAccount('admin', 'admin@travel-generator.com', 'admin123')
+          .then(result => {
+            if (result.success && result.user) {
+              console.log('✅ 管理员账号已创建并自动登录:', {
+                username: result.user.username,
+                email: result.user.email,
+                tier: result.user.tier,
+                dailyLimit: '999999'
+              });
+              setCurrentUser(result.user);
+              const newUsage = userService.checkUsageLimit(result.user.id);
+              setUsageInfo(newUsage);
+            }
+          })
+          .catch(error => {
+            console.error('❌ 管理员账号创建失败:', error);
+          });
+      }
+    };
+
+    initializeUserSystem();
+  }, []);
+
+  // 更新使用次数信息的辅助函数
+  const updateUsageInfo = useCallback(() => {
+    const usage = userService.checkUsageLimit(currentUser?.id);
+    setUsageInfo(usage);
+  }, [currentUser]);
+
+  // 检查并消耗使用次数
+  const checkAndConsumeUsage = useCallback((): boolean => {
+    const canConsume = userService.consumeUsage(currentUser?.id);
+    if (canConsume) {
+      updateUsageInfo();
+      return true;
+    }
+    return false;
+  }, [currentUser, updateUsageInfo]);
+
+  // 🚀 飞书配置管理
+  const handleFeishuConfigSave = useCallback((config: FeishuConfig) => {
+    setFeishuConfig(config);
+    setIsFeishuWorkflowEnabled(true);
+    localStorage.setItem('feishu-config', JSON.stringify(config));
+    console.log('✅ 飞书配置已保存');
+  }, []);
+
+  // 加载飞书配置
+  useEffect(() => {
+    const savedConfig = localStorage.getItem('feishu-config');
+    if (savedConfig) {
+      try {
+        const config = JSON.parse(savedConfig);
+        setFeishuConfig(config);
+        setIsFeishuWorkflowEnabled(true);
+      } catch (error) {
+        console.error('❌ 飞书配置加载失败:', error);
+      }
+    }
+  }, []);
+
+  // 处理用户登录/注册
+  const handleUserChange = useCallback(() => {
+    const user = userService.getCurrentUser();
+    setCurrentUser(user);
+    updateUsageInfo();
+  }, [updateUsageInfo]);
+
+  // 从localStorage加载API配置
+  useEffect(() => {
+    const loadApiConfig = () => {
+      try {
+        const savedConfig = localStorage.getItem('travel-generator-api-config');
+        if (savedConfig) {
+          const config = JSON.parse(savedConfig);
+          
+          // 检查是否是旧格式的配置
+          if (config.enablePaidApi !== undefined || config.runningHubApiKey !== undefined) {
+            console.log('🔄 检测到旧格式API配置，正在迁移...');
+            
+            // 迁移旧格式到新格式
+            const migratedConfig: ApiConfig = {
+              textGeneration: {
+                enablePaid: false, // 旧版本没有文字生成付费选项
+                provider: 'builtin_free',
+                apiKey: undefined,
+                customEndpoint: undefined
+              },
+              imageGeneration: {
+                enablePaid: config.enablePaidApi || false,
+                provider: config.enablePaidApi ? 'runninghub' : 'builtin_free',
+                apiKey: config.runningHubApiKey || undefined,
+                customEndpoint: undefined
+              },
+              global: {
+                preferPaidServices: config.enablePaidApi || false,
+                fallbackToFree: true
+              }
+            };
+            
+            setApiConfig(migratedConfig);
+            
+            // 保存迁移后的配置
+            localStorage.setItem('travel-generator-api-config', JSON.stringify(migratedConfig));
+            console.log('✅ API配置迁移完成');
+          } else {
+            // 新格式配置，但需要验证完整性
+            const newConfig: ApiConfig = {
+              textGeneration: {
+                enablePaid: config.textGeneration?.enablePaid || false,
+                provider: config.textGeneration?.provider || 'builtin_free',
+                apiKey: config.textGeneration?.apiKey || undefined,
+                customEndpoint: config.textGeneration?.customEndpoint || undefined
+              },
+              imageGeneration: {
+                enablePaid: config.imageGeneration?.enablePaid || false,
+                provider: config.imageGeneration?.provider || 'builtin_free',
+                apiKey: config.imageGeneration?.apiKey || undefined,
+                customEndpoint: config.imageGeneration?.customEndpoint || undefined
+              },
+              global: {
+                preferPaidServices: config.global?.preferPaidServices || false,
+                fallbackToFree: config.global?.fallbackToFree !== false // 默认为true
+              }
+            };
+            
+            setApiConfig(newConfig);
+            console.log('✅ 已加载保存的API配置');
+          }
+        }
+      } catch (error) {
+        console.warn('⚠️ 加载API配置失败，使用默认配置:', error);
+        // 如果配置加载失败，清除损坏的配置并使用默认值
+        localStorage.removeItem('travel-generator-api-config');
+      }
+    };
+    
+    loadApiConfig();
+  }, []);
+
+  // 保存API配置到localStorage
+  const saveApiConfig = useCallback((config: ApiConfig) => {
+    try {
+      console.log('💾 开始保存API配置:', config);
+      localStorage.setItem('travel-generator-api-config', JSON.stringify(config));
+      setApiConfig(config);
+      
+      // 立即更新API服务状态
+      const textStatus = {
+        isActive: true,
+        provider: config.textGeneration.provider,
+        isPaid: config.textGeneration.enablePaid && config.textGeneration.provider !== 'builtin_free'
+      };
+
+      const imageStatus = {
+        isActive: true,
+        provider: config.imageGeneration.provider,
+        isPaid: config.imageGeneration.enablePaid && config.imageGeneration.provider !== 'builtin_free'
+      };
+
+      setApiServiceStatus({
+        textGeneration: textStatus,
+        imageGeneration: imageStatus
+      });
+
+      // 更新旧的兼容性状态
+      const hasAnyPaidService = textStatus.isPaid || imageStatus.isPaid;
+      setUsingBuiltinFreeApi(!hasAnyPaidService);
+      
+      console.log('✅ API配置已保存到localStorage');
+      console.log('🔍 保存后的配置详情:');
+      console.log('📝 文字生成服务:', {
+        启用付费: config.textGeneration.enablePaid,
+        提供商: config.textGeneration.provider,
+        有API密钥: !!config.textGeneration.apiKey
+      });
+      console.log('🎨 图像生成服务:', {
+        启用付费: config.imageGeneration.enablePaid,
+        提供商: config.imageGeneration.provider,
+        有API密钥: !!config.imageGeneration.apiKey
+      });
+      console.log('🔧 API服务状态已立即更新:');
+      console.log('📝 文字生成:', textStatus.isPaid ? `💎 ${textStatus.provider}` : `🆓 ${textStatus.provider}`);
+      console.log('🎨 图像生成:', imageStatus.isPaid ? `💎 ${imageStatus.provider}` : `🆓 ${imageStatus.provider}`);
+    } catch (error) {
+      console.error('❌ 保存API配置失败:', error);
+    }
+  }, []);
+
+  // 初始化时检查API配置状态
+  useEffect(() => {
+    const checkApiStatus = () => {
+      console.log('🔧 开始检查API服务状态...');
+      console.log('🔍 当前配置:', apiConfig);
+      
+      // 更新文字生成服务状态
+      const textStatus = {
+        isActive: true,
+        provider: apiConfig.textGeneration.provider,
+        isPaid: apiConfig.textGeneration.enablePaid && apiConfig.textGeneration.provider !== 'builtin_free'
+      };
+
+      // 更新图像生成服务状态
+      const imageStatus = {
+        isActive: true,
+        provider: apiConfig.imageGeneration.provider,
+        isPaid: apiConfig.imageGeneration.enablePaid && apiConfig.imageGeneration.provider !== 'builtin_free'
+      };
+
+      console.log('📝 文字生成状态计算:');
+      console.log('  - enablePaid:', apiConfig.textGeneration.enablePaid);
+      console.log('  - provider:', apiConfig.textGeneration.provider);
+      console.log('  - provider !== builtin_free:', apiConfig.textGeneration.provider !== 'builtin_free');
+      console.log('  - 最终isPaid:', textStatus.isPaid);
+
+      console.log('🎨 图像生成状态计算:');
+      console.log('  - enablePaid:', apiConfig.imageGeneration.enablePaid);
+      console.log('  - provider:', apiConfig.imageGeneration.provider);
+      console.log('  - provider !== builtin_free:', apiConfig.imageGeneration.provider !== 'builtin_free');
+      console.log('  - 最终isPaid:', imageStatus.isPaid);
+
+      setApiServiceStatus({
+        textGeneration: textStatus,
+        imageGeneration: imageStatus
+      });
+
+      // 更新旧的兼容性状态
+      const hasAnyPaidService = textStatus.isPaid || imageStatus.isPaid;
+      setUsingBuiltinFreeApi(!hasAnyPaidService);
+
+      console.log('🔧 API服务状态更新完成:');
+      console.log('📝 文字生成:', textStatus.isPaid ? `💎 ${textStatus.provider}` : `🆓 ${textStatus.provider}`);
+      console.log('🎨 图像生成:', imageStatus.isPaid ? `💎 ${imageStatus.provider}` : `🆓 ${imageStatus.provider}`);
+      console.log('📊 状态总结:', { textStatus, imageStatus, hasAnyPaidService });
+    };
+    
+    checkApiStatus();
+  }, [apiConfig]);
+
+  // 重置所有状态
+  const handleReset = useCallback(() => {
+    setUserInputs(null);
+    setGeneratedScenario(null);
+    setGeneratedItinerary(null);
+    setGeneratedSocialMediaCopy(null);
+    setGeneratedVideoScript(null);
+    setGeneratedImageData(null);
+    setGeneratedImagesList([]);
+    setFakeEngagementData(null);
+    setFakeComments([]);
+    setError(null);
+    setTravelReflectionCards([]);
+  }, []);
+
+  /**
+   * 返回首页函数
+   * 清理所有状态并返回到功能选择页面
+   */
+  const handleBackToHome = useCallback(() => {
+    setSelectedTravelMode(null);
+    setShowInitialModal(false);
+    handleReset();
+    setCurrentPhase('functionSelection');
+  }, [handleReset]);
+
+  /**
+   * 重新设置旅程函数
+   * 保留旅行模式但清理生成的内容，重新打开设置模态框
+   */
+  const handleBackToSetup = useCallback(() => {
+    handleReset();
+    if (selectedTravelMode) {
+      setShowInitialModal(true);
+    }
+  }, [handleReset, selectedTravelMode]);
+
+  /**
+   * 退出应用函数
+   * 清理所有状态并关闭或刷新页面
+   */
+  const handleExitApp = useCallback(() => {
+    // 清理本地存储中的临时数据
+    try {
+      localStorage.removeItem('temp-generation-data');
+      sessionStorage.clear();
+    } catch (error) {
+      console.warn('清理存储数据时出错:', error);
+    }
+    
+    // 重置所有状态
+    handleReset();
+    setSelectedTravelMode(null);
+    setShowInitialModal(false);
+    setCurrentPhase('functionSelection');
+    
+    // 如果是在浏览器环境中，尝试关闭窗口或返回上一页
+    if (typeof window !== 'undefined') {
+      // 如果窗口是通过脚本打开的，可以关闭
+      if (window.opener) {
+        window.close();
+      } else {
+        // 否则返回上一页或刷新页面
+        if (window.history.length > 1) {
+          window.history.back();
+        } else {
+          // 如果没有历史记录，刷新到首页
+          window.location.reload();
+        }
+      }
+    }
+  }, [handleReset]);
+
+  // 阶段转换处理函数
+  const handleFunctionSelect = (functionType: 'virtual' | 'real') => {
+    // 设置选择的旅行模式
+    const travelMode = functionType === 'virtual' ? 'fictional' : 'realistic';
+    setSelectedTravelMode(travelMode);
+    
+    // 直接打开配置模态框
+    setShowInitialModal(true);
+  };
+
+  const handleBackToFunctionSelection = () => {
+    // 清理状态
+    setSelectedTravelMode(null);
+    handleReset();
+  };
+
+  const handleBackToWelcome = () => {
+    // 清理状态
+    setSelectedTravelMode(null);
+    handleReset();
+  };
+
+  // 开始生成旅行内容
+  const handleStartGeneration = () => {
+    setShowInitialModal(true);
+  };
+
+  const handleInputSubmit = async (inputs: UserInputs) => {
+    console.log('🚀 开始生成内容，输入参数：', inputs);
+    
+    // 检查使用次数限制
+    if (!usageInfo.canUse) {
+      setError(`今日使用次数已达上限。${currentUser ? '请升级会员或明日再试' : '请登录账号或升级会员获得更多次数'}`);
+      return;
+    }
+
+    // 消耗使用次数
+    if (!checkAndConsumeUsage()) {
+      setError('使用次数不足，无法生成内容');
+      return;
+    }
+
+    setIsLoading(true);
+    setError(null);
+    setAppError(null);
+    setUserInputs(inputs);
+    
+    // 重置所有生成结果
+    setGeneratedScenario(null);
+    setGeneratedItinerary(null);
+    setGeneratedSocialMediaCopy(null);
+    setGeneratedVideoScript(null);
+    setGeneratedImageData(null);
+    setGeneratedImagesList([]);
+    setFakeEngagementData(null);
+    setFakeComments([]);
+    setTravelReflectionCards([]);
+
+    try {
+      setIsLoading(true);
+      setCurrentStepIndex(0);
+      setError(null);
+
+      // 根据API配置选择生成方式
+      const config = apiConfig;
+      const hasApiKey = config?.textGeneration?.enablePaid && config?.textGeneration?.apiKey;
+      
+      if (hasApiKey) {
+        console.log('🚀 使用智能API生成内容...');
+        await generateContentWithBuiltinFreeApi(inputs); // 暂时使用内置服务，因为智能服务还在开发中
+      } else {
+        console.log('🆓 使用内置免费API生成内容...');
+        await generateContentWithBuiltinFreeApi(inputs);
+      }
+
+      setIsLoading(false);
+      setCurrentStepIndex(0);
+    } catch (error: any) {
+      console.error('❌ 内容生成失败:', error);
+      setError(error.message || '生成过程中发生未知错误');
+      setAppError(error.message || '生成过程中发生未知错误');
+      setIsLoading(false);
+      setCurrentStepIndex(0);
+    }
+  };
+
+  // 生成模拟用户交互数据
+  const generateFakeEngagementData = (destinationName: string, isRealistic: boolean): FakeEngagementData => {
+    const baseViews = isRealistic ? 50000 : 80000;
+    const viewVariation = Math.random() * 100000;
+    const totalViews = Math.floor(baseViews + viewVariation);
+    const totalReads = Math.floor(totalViews * 1.2); // 阅读量通常高于播放量
+    
+    return {
+      reads: `${(totalReads / 10000).toFixed(1)}万`,
+      collections: `${Math.floor(totalReads * (0.03 + Math.random() * 0.07))}`, // 3-10% 收藏率
+      likeRate: `${((0.08 + Math.random() * 0.12) * 100).toFixed(1)}%`, // 8-20% 点赞率
+      completionRate: `${((0.60 + Math.random() * 0.30) * 100).toFixed(1)}%` // 60-90% 完成率
+    };
+  };
+
+  // 使用内置免费API生成内容
+  const generateContentWithBuiltinFreeApi = async (inputs: UserInputs) => {
+    console.log('🆓 使用内置免费API开始生成...');
+    const isVirtual = inputs.travelMode === 'fictional';
+    
+    if (inputs.travelMode === 'fictional') {
+      // 虚拟场景模式
+      updateGenerationStep(0, true);
+      console.log('🎭 生成虚拟场景...');
+      await new Promise(resolve => setTimeout(resolve, 1500)); // 模拟加载时间
+      
+      updateGenerationStep(1, true);
+      const scenario = await generateIntelligentScenario(inputs);
+      setGeneratedScenario(scenario);
+
+      // 生成社交媒体文案
+      updateGenerationStep(2, true);
+      console.log('📱 生成社交媒体文案...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const socialMediaCopy = await generateIntelligentSocialMediaCopy(
+        scenario,
+        null,
+        inputs
+      );
+      setGeneratedSocialMediaCopy(socialMediaCopy);
+
+      // 生成视频脚本
+      updateGenerationStep(3, true);
+      console.log('🎬 生成视频脚本...');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const videoScript = await generateIntelligentVideoScript(
+        scenario,
+        null,
+        inputs,
+        Date.now() + Math.floor(Math.random() * 100000)
+      );
+      setGeneratedVideoScript(videoScript);
+
+      // 生成评论
+      updateGenerationStep(5, true);
+      console.log('💬 生成评论...');
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const comments = await generateBuiltinFreeComments(
+        scenario,
+        null,
+        inputs
+      );
+      setFakeComments(comments);
+
+      // 生成模拟交互数据
+      updateGenerationStep(6, true);
+      console.log('📊 生成模拟交互数据...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const engagementData = generateFakeEngagementData(scenario.destinationName, false);
+      setFakeEngagementData(engagementData);
+
+      // 生成旅行感言卡片
+      updateGenerationStep(7, true);
+      console.log('🎨 开始生成旅行感言卡片...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        const reflectionCards = await generateTravelReflectionCards(
+          scenario,
+          null,
+          inputs
+        );
+        setTravelReflectionCards(reflectionCards);
+        console.log(`✅ 成功生成 ${reflectionCards.length} 张感言卡片`);
+      } catch (error) {
+        console.warn('⚠️ 感言卡片生成失败，继续其他流程:', error);
+        setTravelReflectionCards([]);
+      }
+
+      // 生成图片 - 使用新的分镜对应图片生成函数
+      updateGenerationStep(4, true);
+      console.log('🎨 生成虚拟场景图片（与视频分镜一一对应）...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      let batchResults: any[] = [];
+      let startBatchTime = Date.now();
+
+      // 准备图片生成任务
+      const imageTasks = videoScript.scenes.map((scene, index) => ({
+        id: `scene-${index}`,
+        prompt: `${scenario.destinationName} ${scene.shot}: ${scene.audio_visual_notes}, no text, no words, no letters, no captions, pure visual content only`,
+        filterStyle: inputs.filterStyle,
+        isRealistic: false,
+        priority: index === 0 ? 'high' as const : 'normal' as const
+      }));
+
+      // 🚀 检查是否启用飞书工作流（会员和管理员专享）
+      if (isFeishuWorkflowEnabled && feishuConfig && (currentUser?.tier === 'premium' || currentUser?.tier === 'admin')) {
+        console.log('🚀 启动飞书多维表格企业级工作流...');
+        
+        // 🚀 启动飞书性能监控
+        setShowPerformanceMonitor(true);
+        setPerformanceMetrics(prev => ({
+          ...prev,
+          currentStatus: '飞书企业级工作流',
+          speedImprovement: 9.5, // 飞书工作流预估9.5倍速度提升
+          currentImageProvider: getImageProviderDisplayName(apiServiceStatus.imageGeneration.provider),
+          imageProviderType: apiServiceStatus.imageGeneration.isPaid ? 'paid' : 'free'
+        }));
+
+        try {
+          const feishuResults = await executeFeishuWorkflow(
+            videoScript,
+            feishuConfig,
+            `virtual-${Date.now()}`,
+            (progress, phase) => {
+              console.log(`📊 飞书工作流进度: ${progress}% - ${phase}`);
+              setPerformanceProgress(progress);
+              setPerformancePhase(`飞书: ${phase}`);
+            }
+          );
+
+          // 转换飞书结果为标准格式
+          batchResults = feishuResults.map((result, index) => ({
+            success: true,
+            imageBase64: result.imageBase64,
+            apiProvider: 'feishu_integrated',
+            promptUsed: result.promptUsed,
+            generateTime: 0
+          }));
+
+          console.log(`✅ 飞书工作流完成，生成${batchResults.length}张图片`);
+
+        } catch (error: any) {
+          console.error('❌ 飞书工作流失败，回退到标准流程:', error);
+          
+                     // 回退到标准超高速生成流程
+           console.log('🔄 回退到标准超高速批量图片生成...');
+
+           batchResults = await generateImagesUltraFast(imageTasks, (progress, phase) => {
+             setPerformanceProgress(progress);
+             setPerformancePhase(phase);
+           });
+        }
+      } else {
+                 // 🚀 标准超高速批量图片生成 (并发8线程+缓存+竞速)
+         console.log('🚀 启动超高速批量图片生成（8线程并发）...');
+        
+        console.log(`⚡ 启动${imageTasks.length}张图片终极超高速生成，预计5-10秒完成...`);
+        
+        // 🚀 启动性能监控
+        setShowPerformanceMonitor(true);
+        setPerformanceMetrics(prev => ({
+          ...prev,
+          currentStatus: '虚拟场景生成中',
+          speedImprovement: 8.5, // 预估8.5倍速度提升
+          currentImageProvider: getImageProviderDisplayName(apiServiceStatus.imageGeneration.provider),
+          imageProviderType: apiServiceStatus.imageGeneration.isPaid ? 'paid' : 'free'
+        }));
+
+        // 🚀 使用终极优化器 - 带进度回调
+        batchResults = await generateImagesUltraFast(imageTasks, (progress, phase) => {
+          console.log(`📊 生成进度: ${progress}% - ${phase}`);
+          setPerformanceProgress(progress);
+          setPerformancePhase(phase);
+        });
+      }
+      
+      const batchTime = (Date.now() - startBatchTime) / 1000;
+      console.log(`🎉 批量生成完成！耗时: ${batchTime.toFixed(1)}秒，平均每张: ${(batchTime/imageTasks.length).toFixed(1)}秒`);
+      
+      const successfulImages = batchResults.filter(result => result.success);
+      console.log(`✅ 成功率: ${successfulImages.length}/${imageTasks.length} (${((successfulImages.length/imageTasks.length)*100).toFixed(1)}%)`);
+      
+      // 如果成功率不佳，启用补充生成
+      if (successfulImages.length < imageTasks.length * 0.7) {
+        console.log('🔄 成功率偏低，启用补充生成模式...');
+        const failedTasks = imageTasks.filter((_, index) => !batchResults[index]?.success);
+        const retryResults = await generateImagesBatch(failedTasks);
+        successfulImages.push(...retryResults.filter(r => r.success));
+      }
+      
+      // 转换为原格式
+      const geminiVirtualImages = successfulImages.map((result, index) => ({
+        id: `img-${Date.now()}-${index}`,
+        imageBase64: result.imageBase64!,
+        sceneName: videoScript.scenes[index]?.shot || `场景${index + 1}`,
+        sceneDescription: videoScript.scenes[index]?.audio_visual_notes || '',
+        apiProvider: result.apiProvider as ImageApiProvider,
+        promptUsed: result.promptUsed || ''
+      }));
+      
+      // 设置图片数据
+      setGeneratedImageData(geminiVirtualImages[0] || null);
+      setGeneratedImagesList(geminiVirtualImages);
+      console.log(`✅ 超高速虚拟场景图片生成完成！共生成${geminiVirtualImages.length}张图片`);
+      console.log('🎯 图片场景列表:', geminiVirtualImages.map(img => img.sceneName));
+      console.log('🎬 视频分镜数量:', videoScript.scenes.length);
+      console.log('📊 图片与视频分镜数量对比:', geminiVirtualImages.length === videoScript.scenes.length ? '✅ 完全一致' : '❌ 不一致');
+      
+      // 显示性能统计
+      const stats = getImageGenerationStats();
+      console.log('📈 图片生成性能统计:', stats);
+      
+      // 🚀 更新性能监控指标
+      setPerformanceMetrics(prev => ({
+        ...prev,
+        totalGenerated: prev.totalGenerated + geminiVirtualImages.length,
+        averageTime: batchTime / imageTasks.length,
+        cacheHitRate: stats.cacheHitRate,
+        currentStatus: '虚拟场景生成完成'
+      }));
+      
+      // 3秒后隐藏性能监控
+      setTimeout(() => setShowPerformanceMonitor(false), 3000);
+
+    } else {
+      // 真实旅行模式
+      updateGenerationStep(0, false);
+      console.log('🗺️ 生成真实旅行计划...');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      updateGenerationStep(1, false);
+      const itinerary = await generateIntelligentItinerary(inputs);
+      setGeneratedItinerary(itinerary);
+
+      // 生成社交媒体文案
+      updateGenerationStep(2, false);
+      console.log('📱 生成真实旅行社交媒体文案...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      const socialMediaCopy = await generateIntelligentSocialMediaCopy(
+        null,
+        itinerary,
+        inputs
+      );
+      setGeneratedSocialMediaCopy(socialMediaCopy);
+
+      // 生成视频脚本
+      updateGenerationStep(3, false);
+      console.log('🎬 生成真实旅行增强版视频脚本...');
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      const videoScript = await generateIntelligentVideoScript(
+        null,
+        itinerary,
+        inputs,
+        Date.now() + Math.floor(Math.random() * 100000)
+      );
+      setGeneratedVideoScript(videoScript);
+
+      // 生成评论
+      updateGenerationStep(5, false);
+      console.log('💬 生成真实旅行评论...');
+      await new Promise(resolve => setTimeout(resolve, 800));
+      const comments = await generateBuiltinFreeComments(
+        null,
+        itinerary,
+        inputs
+      );
+      setFakeComments(comments);
+
+      // 使用新的分镜对应图片生成函数
+      updateGenerationStep(4, false);
+      console.log('🎨 生成真实旅行图片（与视频分镜一一对应）...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // 🚀 启动革命性超高速真实旅行图片生成 (并发8线程+缓存+竞速)
+      const realStartBatchTime = Date.now();
+      console.log('🚀 启动超高速真实旅行图片生成（8线程并发）...');
+      
+              const realImageTasks = videoScript.scenes.map((scene, index) => ({
+          id: `real-scene-${index}`,
+          prompt: `${itinerary.destinationName} ${scene.shot}: ${scene.audio_visual_notes}. 高质量真实摄影风格，自然光线，专业构图，无文字，无字母，无标识，纯视觉内容`,
+          filterStyle: inputs.filterStyle,
+          isRealistic: true,
+          priority: index === 0 ? 'high' as const : 'normal' as const
+        }));
+      
+      console.log(`⚡ 启动${realImageTasks.length}张真实旅行图片终极超高速生成，预计5-10秒完成...`);
+      
+      // 🚀 启动真实旅行性能监控
+      setShowPerformanceMonitor(true);
+      setPerformanceMetrics(prev => ({
+        ...prev,
+        currentStatus: '真实旅行图片生成中',
+        speedImprovement: 9.2, // 真实旅行模式预估9.2倍速度提升
+        currentImageProvider: getImageProviderDisplayName(apiServiceStatus.imageGeneration.provider),
+        imageProviderType: apiServiceStatus.imageGeneration.isPaid ? 'paid' : 'free'
+      }));
+
+      // 🚀 使用终极优化器 - 带进度回调  
+      const realBatchResults = await generateImagesUltraFast(realImageTasks, (progress, phase) => {
+        console.log(`📊 真实旅行生成进度: ${progress}% - ${phase}`);
+        setPerformanceProgress(progress);
+        setPerformancePhase(phase);
+      });
+      
+      const realBatchTime = (Date.now() - realStartBatchTime) / 1000;
+      console.log(`🎉 真实旅行批量生成完成！耗时: ${realBatchTime.toFixed(1)}秒，平均每张: ${(realBatchTime/realImageTasks.length).toFixed(1)}秒`);
+      
+      const realSuccessfulImages = realBatchResults.filter(result => result.success);
+      console.log(`✅ 真实旅行成功率: ${realSuccessfulImages.length}/${realImageTasks.length} (${((realSuccessfulImages.length/realImageTasks.length)*100).toFixed(1)}%)`);
+      
+      // 如果成功率不佳，启用补充生成
+      if (realSuccessfulImages.length < realImageTasks.length * 0.7) {
+        console.log('🔄 真实旅行成功率偏低，启用补充生成模式...');
+        const failedRealTasks = realImageTasks.filter((_, index) => !realBatchResults[index]?.success);
+        const realRetryResults = await generateImagesBatch(failedRealTasks);
+        realSuccessfulImages.push(...realRetryResults.filter(r => r.success));
+      }
+      
+      // 转换为原格式
+      const geminiRealisticImages = realSuccessfulImages.map((result, index) => ({
+        id: `img-${Date.now()}-${index}`,
+        imageBase64: result.imageBase64!,
+        sceneName: videoScript.scenes[index]?.shot || `场景${index + 1}`,
+        sceneDescription: videoScript.scenes[index]?.audio_visual_notes || '',
+        apiProvider: result.apiProvider as ImageApiProvider,
+        promptUsed: result.promptUsed || ''
+      }));
+      
+      // 设置图片数据
+      setGeneratedImageData(geminiRealisticImages[0] || null); // 主图片
+      setGeneratedImagesList(geminiRealisticImages); // 所有图片列表
+      
+      console.log(`✅ 超高速真实旅行图片生成完成！共生成${geminiRealisticImages.length}张图片`);
+      console.log('🎯 图片场景列表:', geminiRealisticImages.map(img => img.sceneName));
+      console.log('🎬 视频分镜数量:', videoScript.scenes.length);
+      console.log('📊 图片与视频分镜数量对比:', geminiRealisticImages.length === videoScript.scenes.length ? '✅ 完全一致' : '❌ 不一致');
+      
+      // 显示性能统计
+      const realStats = getImageGenerationStats();
+      console.log('📈 真实旅行图片生成性能统计:', realStats);
+      
+      // 🚀 更新真实旅行性能监控指标
+      setPerformanceMetrics(prev => ({
+        ...prev,
+        totalGenerated: prev.totalGenerated + geminiRealisticImages.length,
+        averageTime: realBatchTime / realImageTasks.length,
+        cacheHitRate: realStats.cacheHitRate,
+        currentStatus: '真实旅行生成完成'
+      }));
+      
+      // 3秒后隐藏性能监控
+      setTimeout(() => setShowPerformanceMonitor(false), 3000);
+
+      // 生成模拟交互数据
+      updateGenerationStep(6, false);
+      console.log('📊 生成模拟交互数据...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+      const engagementData = generateFakeEngagementData(itinerary.destinationName, true);
+      setFakeEngagementData(engagementData);
+
+      // 生成旅行感言卡片
+      updateGenerationStep(7, false);
+      console.log('✨ 生成旅行感言卡片...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      try {
+        const reflectionCards = await generateTravelReflectionCards(
+          null,
+          itinerary,
+          inputs
+        );
+        setTravelReflectionCards(reflectionCards);
+        console.log(`✅ 成功生成 ${reflectionCards.length} 张感言卡片`);
+      } catch (error) {
+        console.warn('⚠️ 感言卡片生成失败，继续其他流程:', error);
+        setTravelReflectionCards([]);
+      }
+    }
+
+    console.log('✅ 内置免费API生成完成！');
+    setIsLoading(false);
+  };
+
+  // 使用Gemini API生成内容（高级功能）
+  const generateContentWithGeminiApi = async (inputs: UserInputs) => {
+    if (inputs.travelMode === 'fictional') {
+      // 虚拟场景模式
+      console.log('🎭 生成虚拟场景...');
+      const scenario = await generateTravelScenario(
+        inputs.theme,
+        inputs.duration,
+        inputs.persona,
+        inputs.customDestination
+      );
+      setGeneratedScenario(scenario);
+
+      // 生成社交媒体文案
+      console.log('📱 生成社交媒体文案...');
+      const socialMediaCopy = await generateSocialMediaCopy(
+        scenario.destinationName,
+        scenario.coreScenes[0],
+        scenario.plotHook || '',
+        inputs.duration
+      );
+      setGeneratedSocialMediaCopy(socialMediaCopy);
+
+      // 生成视频脚本
+      console.log('🎬 生成视频脚本...');
+      const videoScript = await generateVideoScript(
+        scenario.destinationName,
+        scenario.coreScenes[0],
+        inputs.duration,
+        inputs.theme,
+        inputs.uploadedImageBase64,
+        inputs.uploadedImageMimeType
+      );
+      setGeneratedVideoScript(videoScript);
+
+      // 生成评论
+      console.log('💬 生成评论...');
+      const comments = await generateFakeComments(
+        scenario.destinationName,
+        scenario.coreScenes[0].name,
+        scenario.coreScenes[0].description
+      );
+      const formattedComments: FakeComment[] = comments.map((comment, index) => ({
+        id: `comment-${index}`,
+        userName: `用户${index + 1}`,
+        content: comment,
+        timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString()
+      }));
+      setFakeComments(formattedComments);
+
+      // 生成图片 - 使用内置免费服务
+      console.log('🎨 生成图片...');
+      const imagePrompt = scenario.coreScenes[0].visualPromptHint || 
+        `${scenario.destinationName}的${scenario.coreScenes[0].name}`;
+      
+      // 🎯 重要修复：检查用户是否上传了图片，如果有则使用图生图模式
+      const hasUploadedImage = !!inputs.uploadedImageBase64;
+      console.log(`🖼️ 用户上传图片检查: ${hasUploadedImage ? '✅ 有上传' : '❌ 无上传'}`);
+      
+      if (hasUploadedImage && inputs.uploadedImageBase64) {
+        console.log('🖼️ 使用图生图模式（融合用户照片）');
+        const enhancedImagePrompt = `基于用户上传的个人照片，将其转换为${scenario.destinationName}的${scenario.coreScenes[0].name}场景。保持人物特征，替换背景为虚拟幻境。${imagePrompt}`;
+        
+        const result = await generateIntelligentPhoto(
+          enhancedImagePrompt, 
+          inputs.filterStyle,
+          false, // 虚拟风格
+          inputs.uploadedImageBase64,
+          inputs.uploadedImageMimeType
+        );
+        
+        return {
+          imageBase64: result.imageBase64,
+          promptUsed: result.promptUsed,
+          apiProvider: result.apiProvider as ImageApiProvider,
+          sceneName: scenario.coreScenes[0].name,
+          filterApplied: inputs.filterStyle,
+          fictionalPlace: scenario.destinationName
+        };
+      } else {
+        console.log('📝 使用标准文生图模式');
+        const result = await generateIntelligentPhoto(
+          imagePrompt, 
+          inputs.filterStyle,
+          false, // 虚拟风格
+          inputs.uploadedImageBase64,
+          inputs.uploadedImageMimeType
+        );
+        
+        return {
+          imageBase64: result.imageBase64,
+          promptUsed: result.promptUsed,
+          apiProvider: result.apiProvider as ImageApiProvider,
+          sceneName: scenario.coreScenes[0].name,
+          filterApplied: inputs.filterStyle,
+          fictionalPlace: scenario.destinationName
+        };
+      }
+
+    } else {
+      // 真实旅行模式
+      console.log('🗺️ 生成真实旅行计划...');
+      const itinerary = await generateRealisticTravelItinerary(inputs);
+      setGeneratedItinerary(itinerary);
+
+      const primaryActivity = itinerary.dailyPlans[0]?.activities[0] || null;
+      
+      // 生成社交媒体文案
+      console.log('📱 生成社交媒体文案...');
+      const socialMediaCopy = await generateRealisticSocialMediaCopy(itinerary, primaryActivity);
+      setGeneratedSocialMediaCopy(socialMediaCopy);
+
+      // 生成视频脚本
+      console.log('🎬 生成视频脚本...');
+      const videoScript = await generateRealisticVideoScript(
+        itinerary,
+        primaryActivity,
+        inputs.duration,
+        inputs.uploadedImageBase64,
+        inputs.uploadedImageMimeType
+      );
+      setGeneratedVideoScript(videoScript);
+
+      // 生成评论
+      console.log('💬 生成评论...');
+      const comments = await generateRealisticFakeComments(itinerary, primaryActivity);
+      const formattedComments: FakeComment[] = comments.map((comment, index) => ({
+        id: `comment-${index}`,
+        userName: `${DEFAULT_USER_NAME}${index + 1}`,
+        content: comment,
+        timestamp: new Date(Date.now() - Math.random() * 86400000).toISOString()
+      }));
+      setFakeComments(formattedComments);
+
+      // 生成图片 - 使用内置免费服务
+      console.log('🎨 生成图片...');
+      const imagePrompt = `${itinerary.destinationName}真实旅行场景，${inputs.theme}主题，真实摄影风格`;
+      
+      // 🎯 重要修复：检查用户是否上传了图片，如果有则使用图生图模式
+      const hasUploadedImage = !!inputs.uploadedImageBase64;
+      console.log(`🖼️ 用户上传图片检查: ${hasUploadedImage ? '✅ 有上传' : '❌ 无上传'}`);
+      
+      if (hasUploadedImage && inputs.uploadedImageBase64) {
+        console.log('🎭 启用图生图模式：基于用户上传的图片生成真实旅行场景');
+        console.log('📏 上传图片数据长度:', inputs.uploadedImageBase64.length);
+        console.log('📄 图片类型:', inputs.uploadedImageMimeType || 'unknown');
+        
+        // 为图生图增强提示词
+        const enhancedImagePrompt = `基于用户上传的个人照片，将其融入${itinerary.destinationName}的真实旅行场景。保持人物特征，展现在${inputs.theme}主题下的旅行体验。${imagePrompt}`;
+        
+        const result = await generateIntelligentPhoto(
+          enhancedImagePrompt, 
+          inputs.filterStyle,
+          true, // 真实风格
+          inputs.uploadedImageBase64,
+          inputs.uploadedImageMimeType
+        );
+        
+        setGeneratedImageData({
+          imageBase64: result.imageBase64,
+          promptUsed: result.promptUsed,
+          apiProvider: result.apiProvider as ImageApiProvider,
+          sceneName: primaryActivity?.name,
+          filterApplied: inputs.filterStyle,
+          realPlaceContext: itinerary.destinationName,
+          userName: '您的旅行身影'
+        });
+      } else {
+        console.log('📝 使用标准文生图模式');
+        const result = await generateIntelligentPhoto(
+          imagePrompt, 
+          inputs.filterStyle,
+          true, // 真实风格
+          inputs.uploadedImageBase64,
+          inputs.uploadedImageMimeType
+        );
+        
+        setGeneratedImageData({
+          imageBase64: result.imageBase64,
+          promptUsed: result.promptUsed,
+          apiProvider: result.apiProvider as ImageApiProvider,
+          sceneName: primaryActivity?.name,
+          filterApplied: inputs.filterStyle,
+          realPlaceContext: itinerary.destinationName
+        });
+      }
+    }
+
+    console.log('✅ Gemini API生成完成！');
+  };
+
+  // 单张图片刷新（重生成）逻辑
+  const handleRetryImage = async (index: number) => {
+    if (!userInputs) return;
+    setRefreshError(prev => prev.map((e, i) => i === index ? '' : e));
+    setRefreshingIndexes(prev => [...prev, index]);
+    let newImageData: GeneratedImageData | undefined;
+    try {
+      const randomSeed = Date.now() + Math.floor(Math.random() * 100000);
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('图片生成超时，请稍后重试')), 30000));
+      const generatePromise = (async () => {
+        if (userInputs.travelMode === 'realistic' && generatedItinerary) {
+          const dayPlans = generatedItinerary.dailyPlans || [];
+          let activity;
+          let count = 0;
+          outer: for (const day of dayPlans) {
+            for (const act of day.activities) {
+              if (count === index) { activity = act; break outer; }
+              count++;
+            }
+          }
+          if (!activity) throw new Error('未找到对应活动');
+          const prompt = `${activity.name}在${generatedItinerary.destinationName}，${activity.description}，真实旅行摄影风格，自然光线，真实场景，专业摄影质量，生活化场景，旅行纪实摄影，无任何文字，无水印，纯净画面`;
+          const result = await generateIntelligentPhoto(prompt, userInputs.filterStyle, true);
+          newImageData = {
+            src: result.imageBase64,
+            imageBase64: result.imageBase64,
+            sceneName: activity.name,
+            userName: '旅行达人',
+            realPlaceContext: `${generatedItinerary.destinationName} - ${activity.addressOrArea}`,
+            filterApplied: userInputs.filterStyle,
+            promptUsed: result.promptUsed,
+            apiProvider: result.apiProvider as ImageApiProvider
+          };
+        } else if (userInputs.travelMode === 'fictional' && generatedScenario) {
+          // 重新生成脚本，确保分镜和prompt有变化
+          const videoScript = await generateIntelligentVideoScript(
+            generatedScenario,
+            null,
+            userInputs,
+            randomSeed
+          );
+          const scene = videoScript.scenes[index];
+          if (!scene) throw new Error('未找到对应分镜');
+          const prompt = `${userInputs.theme}风格的${scene.shot}`;
+          const result = await generateIntelligentPhoto(prompt, userInputs.filterStyle, false);
+          newImageData = {
+            src: result.imageBase64,
+            imageBase64: result.imageBase64,
+            sceneName: generatedScenario.coreScenes[index]?.name || `分镜${index+1}`,
+            userName: '幻境探索者',
+            fictionalPlace: generatedScenario.destinationName,
+            filterApplied: userInputs.filterStyle,
+            promptUsed: result.promptUsed,
+            apiProvider: result.apiProvider as ImageApiProvider
+          };
+        } else {
+          throw new Error('未知的旅行模式');
+        }
+        setGeneratedImagesList(prev => prev.map((img, i) => i === index ? (newImageData as GeneratedImageData) : img));
+        setRefreshError(prev => prev.map((e, i) => i === index ? '' : e));
+      })();
+      await Promise.race([generatePromise, timeoutPromise]);
+    } catch (err: any) {
+      setRefreshError(prev => {
+        const arr = [...prev];
+        arr[index] = `图片刷新失败：${err.message || err}`;
+        return arr;
+      });
+    } finally {
+      setRefreshingIndexes(prev => prev.filter(i => i !== index));
+    }
+  };
+
+  // 渲染不同阶段的内容
+  const renderCurrentPhase = () => {
+    // 只渲染功能选择页面
+    return renderFunctionSelectionPage();
+  };
+
+  // 渲染功能选择页面
+  const renderFunctionSelectionPage = () => {
+  return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-indigo-900 relative overflow-hidden">
+        {/* 动态背景装饰元素 */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {/* 主要动态渐变背景 */}
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-600/30 via-blue-600/20 to-cyan-600/30 animate-pulse"></div>
+          
+          {/* 浮动粒子和装饰元素 */}
+          <div className="absolute top-10 left-10 w-4 h-4 bg-cyan-400 rounded-full animate-ping opacity-40"></div>
+          <div className="absolute top-20 right-20 w-6 h-6 bg-purple-400 rounded-full animate-bounce opacity-50 delay-300"></div>
+          <div className="absolute bottom-20 left-20 w-3 h-3 bg-pink-400 rounded-full animate-pulse opacity-60 delay-500"></div>
+          <div className="absolute bottom-32 right-32 w-5 h-5 bg-blue-400 rounded-full animate-ping opacity-40 delay-700"></div>
+          <div className="absolute top-1/3 left-1/4 w-2 h-2 bg-yellow-400 rounded-full animate-bounce opacity-50 delay-1000"></div>
+          <div className="absolute top-2/3 right-1/4 w-3 h-3 bg-green-400 rounded-full animate-pulse opacity-60 delay-1200"></div>
+          
+          {/* 大型装饰圆圈 */}
+          <div className="absolute -top-20 -left-20 w-80 h-80 bg-gradient-to-br from-purple-500/20 to-blue-500/20 rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute -bottom-20 -right-20 w-96 h-96 bg-gradient-to-tl from-cyan-500/20 to-purple-500/20 rounded-full blur-3xl animate-pulse delay-1000"></div>
+          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-gradient-to-r from-pink-500/15 to-yellow-500/15 rounded-full blur-3xl animate-spin" style={{animationDuration: '20s'}}></div>
+          
+          {/* 流动的光线效果 */}
+          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-400/60 to-transparent animate-pulse"></div>
+          <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-purple-400/60 to-transparent animate-pulse delay-500"></div>
+          <div className="absolute left-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-pink-400/60 to-transparent animate-pulse delay-300"></div>
+          <div className="absolute right-0 top-0 w-1 h-full bg-gradient-to-b from-transparent via-blue-400/60 to-transparent animate-pulse delay-700"></div>
+          
+          {/* 星星效果 */}
+          <div className="absolute top-16 left-1/3 w-1 h-1 bg-white rounded-full animate-ping opacity-70 delay-200"></div>
+          <div className="absolute top-24 right-1/3 w-1 h-1 bg-white rounded-full animate-ping opacity-70 delay-400"></div>
+          <div className="absolute bottom-16 left-2/3 w-1 h-1 bg-white rounded-full animate-ping opacity-70 delay-600"></div>
+          <div className="absolute bottom-24 right-2/3 w-1 h-1 bg-white rounded-full animate-ping opacity-70 delay-800"></div>
+          
+          {/* 漂浮的几何形状 */}
+          <div className="absolute top-32 left-16 w-8 h-8 border-2 border-cyan-400/40 rotate-45 animate-spin opacity-60" style={{animationDuration: '8s'}}></div>
+          <div className="absolute bottom-32 right-16 w-6 h-6 border-2 border-purple-400/40 rotate-12 animate-bounce opacity-50"></div>
+          <div className="absolute top-1/2 right-8 w-4 h-8 bg-gradient-to-b from-pink-400/30 to-transparent rotate-12 animate-pulse delay-300"></div>
+          <div className="absolute bottom-1/3 left-8 w-8 h-4 bg-gradient-to-r from-blue-400/30 to-transparent rotate-45 animate-pulse delay-600"></div>
+        </div>
+
+        <div className="relative z-20">
+          {/* 应用头部 */}
+          <header className="relative z-50 border-b border-slate-600/50 backdrop-blur-xl bg-slate-900/70">
+            <div className="container mx-auto px-4 py-4">
+              <div className="flex items-center justify-between">
+                
+                {/* 品牌Logo和标题 */}
+                <div className="flex items-center space-x-4">
+                  <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 via-purple-600 to-cyan-500 flex items-center justify-center shadow-lg">
+                    <span className="text-white font-bold text-lg">🌟</span>
+                  </div>
+                  <div>
+                    <h1 className="text-xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-400">
+                      幻境之旅生成器
+                    </h1>
+                    <p className="text-xs text-slate-400">AI驱动的旅行内容创作工具 - 虚拟素材生成</p>
+                  </div>
+                </div>
+
+                {/* 右侧按钮组 */}
+                <div className="flex items-center space-x-3">
+                  {/* API配置按钮 */}
+                  <button
+                    onClick={() => setShowApiConfigModal(true)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-600/50 hover:border-slate-500/50 rounded-lg transition-all duration-200 text-slate-300 hover:text-white"
+                    title="配置API服务"
+                  >
+                    <Settings className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm">API配置</span>
+                  </button>
+
+                  {/* API监控按钮 */}
+                  <button
+                    onClick={() => setShowApiMonitorPanel(true)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-600/50 hover:border-slate-500/50 rounded-lg transition-all duration-200 text-slate-300 hover:text-white"
+                    title="API监控面板"
+                  >
+                    <Activity className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm">API监控</span>
+                  </button>
+
+                  {/* 飞书配置按钮（会员和管理员专享） */}
+                  {(currentUser?.tier === 'premium' || currentUser?.tier === 'admin') && (
+                    <button
+                      onClick={() => setIsFeishuConfigOpen(true)}
+                      className={`flex items-center space-x-2 px-3 py-2 border rounded-lg transition-all duration-200 ${
+                        isFeishuWorkflowEnabled 
+                          ? 'bg-purple-800/50 hover:bg-purple-700/50 border-purple-600/50 hover:border-purple-500/50 text-purple-300 hover:text-white'
+                          : 'bg-slate-800/50 hover:bg-slate-700/50 border-slate-600/50 hover:border-slate-500/50 text-slate-300 hover:text-white'
+                      }`}
+                      title="配置飞书多维表格集成（会员专享）"
+                    >
+                      <Settings className="w-4 h-4" />
+                      <span className="hidden sm:inline text-sm">
+                        {isFeishuWorkflowEnabled ? '飞书已配置' : '飞书配置'}
+                      </span>
+                      {isFeishuWorkflowEnabled && (
+                        <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                      )}
+                    </button>
+                  )}
+
+                  {/* 免费API获取助手按钮 */}
+                  <button
+                    onClick={() => setShowFreeApiKeyHelper(true)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-orange-500 to-pink-500 hover:from-orange-600 hover:to-pink-600 border border-orange-400/50 hover:border-orange-300/50 rounded-lg transition-all duration-200 text-white shadow-lg"
+                    title="免费API密钥获取助手"
+                  >
+                    <span className="text-sm">🔑</span>
+                    <span className="hidden sm:inline text-sm font-medium">获取API</span>
+                  </button>
+
+                  {/* 地图指南按钮 */}
+                  <button
+                    onClick={() => setShowMapGuide(true)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-blue-800/50 hover:bg-blue-700/50 border border-blue-600/50 hover:border-blue-500/50 rounded-lg transition-all duration-200 text-blue-300 hover:text-white"
+                    title="查看地图功能指南"
+                  >
+                    <Map className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm">地图指南</span>
+                  </button>
+
+                  {/* MCP服务面板按钮 */}
+                  <button
+                    onClick={() => setShowMCPPanel(true)}
+                    className="flex items-center space-x-2 px-3 py-2 bg-gradient-to-r from-cyan-600/50 to-blue-600/50 hover:from-cyan-700/50 hover:to-blue-700/50 border border-cyan-500/50 hover:border-cyan-400/50 rounded-lg transition-all duration-200 text-cyan-300 hover:text-white shadow-lg"
+                    title="MCP智能服务面板"
+                  >
+                    <span className="text-sm">🔧</span>
+                    <span className="hidden sm:inline text-sm font-medium">MCP服务</span>
+                  </button>
+
+                  {/* 用户按钮 */}
+                  <button
+                    onClick={() => setShowUserPanel(true)}
+                    className="flex items-center space-x-3 px-4 py-2 bg-slate-800/50 hover:bg-slate-700/50 border border-slate-600/50 hover:border-slate-500/50 rounded-lg transition-all duration-200 text-slate-300 hover:text-white"
+                    title={currentUser ? `${currentUser.profile?.nickname || currentUser.username || '用户'} - 剩余${usageInfo.remainingToday}次` : '登录/注册 - 游客模式'}
+                  >
+                    <div className="flex items-center space-x-2">
+                      <UserIcon className="w-5 h-5" />
+                      <div className="text-left">
+                        <div className="text-sm font-medium">
+                          {currentUser ? (currentUser.profile?.nickname || currentUser.username || '用户') : '游客模式'}
+                        </div>
+                        <div className="text-xs text-slate-400">
+                          剩余 {usageInfo.remainingToday} 次
+                        </div>
+                      </div>
+                      {currentUser && (
+                        <div className={`w-2 h-2 rounded-full ${
+                          currentUser.tier === 'guest' ? 'bg-gray-400' :
+                          currentUser.tier === 'free' ? 'bg-blue-400' :
+                          currentUser.tier === 'premium' ? 'bg-purple-400' :
+                          'bg-yellow-400'
+                        }`} />
+                      )}
+                    </div>
+                  </button>
+
+                  {/* 退出按钮 */}
+                  <button
+                    onClick={handleExitApp}
+                    className="flex items-center space-x-2 px-3 py-2 bg-red-800/50 hover:bg-red-700/50 border border-red-600/50 hover:border-red-500/50 rounded-lg transition-all duration-200 text-red-300 hover:text-white"
+                    title="退出应用"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="hidden sm:inline text-sm">退出</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </header>
+          
+          <main className="container mx-auto px-4 py-8 min-h-screen">
+            <div className="flex flex-col items-center justify-center min-h-[80vh] text-center">
+              <div className="max-w-4xl mx-auto mb-8">
+                <h1 className="text-4xl md:text-6xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-purple-500 to-cyan-400">
+                  选择您的内容生成类型
+                </h1>
+                <p className="text-xl text-slate-300 mb-12">
+                  AI驱动的旅行内容创作工具，生成不同风格的虚拟旅行体验内容
+                </p>
+                
+                {/* 功能选择卡片 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div 
+                    onClick={() => handleFunctionSelect('virtual')}
+                    className="bg-gradient-to-br from-purple-600/20 to-blue-600/20 backdrop-blur-sm rounded-2xl p-8 border border-purple-400/30 hover:scale-105 transition-all duration-300 cursor-pointer group relative overflow-hidden"
+                  >
+                    {/* 卡片内部动态装饰 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-purple-500/10 via-transparent to-blue-500/10 animate-pulse"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-cyan-400/20 to-transparent rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-purple-400/20 to-transparent rounded-full translate-y-12 -translate-x-12 group-hover:scale-150 transition-transform duration-500"></div>
+                    
+                    <div className="relative z-10">
+                      <div className="text-6xl mb-6 group-hover:animate-bounce group-hover:scale-110 transition-all duration-300">🌌</div>
+                      <h3 className="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-cyan-300 group-hover:from-purple-200 group-hover:to-cyan-200 transition-all duration-300">虚拟幻境内容</h3>
+                      <p className="text-slate-300 mb-6 group-hover:text-slate-200 transition-colors duration-300">AI创造的奇幻世界旅行内容生成，打造前所未有的虚拟仙境故事素材</p>
+                      <div className="flex items-center text-cyan-400 group-hover:text-cyan-300 transition-colors duration-300">
+                        <span className="font-semibold">探索神秘仙境</span>
+                        <span className="ml-2 group-hover:translate-x-2 transition-transform duration-300">→</span>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div 
+                    onClick={() => handleFunctionSelect('real')}
+                    className="bg-gradient-to-br from-green-600/20 to-cyan-600/20 backdrop-blur-sm rounded-2xl p-8 border border-cyan-400/30 hover:scale-105 transition-all duration-300 cursor-pointer group relative overflow-hidden"
+                  >
+                    {/* 卡片内部动态装饰 */}
+                    <div className="absolute inset-0 bg-gradient-to-r from-green-500/10 via-transparent to-cyan-500/10 animate-pulse delay-500"></div>
+                    <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-green-400/20 to-transparent rounded-full -translate-y-16 translate-x-16 group-hover:scale-150 transition-transform duration-500"></div>
+                    <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-cyan-400/20 to-transparent rounded-full translate-y-12 -translate-x-12 group-hover:scale-150 transition-transform duration-500"></div>
+                    
+                    <div className="relative z-10">
+                      <div className="text-6xl mb-6 group-hover:animate-bounce group-hover:scale-110 transition-all duration-300">🌍</div>
+                      <h3 className="text-2xl font-bold mb-4 text-transparent bg-clip-text bg-gradient-to-r from-green-300 to-cyan-300 group-hover:from-green-200 group-hover:to-cyan-200 transition-all duration-300">仿真旅行内容</h3>
+                      <p className="text-slate-300 mb-6 group-hover:text-slate-200 transition-colors duration-300">AI智能生成仿真旅行规划内容，创作模拟真实城市的行程素材和攻略文案</p>
+                      <div className="flex items-center text-cyan-400 group-hover:text-cyan-300 transition-colors duration-300">
+                        <span className="font-semibold">开始梦想之旅</span>
+                        <span className="ml-2 group-hover:translate-x-2 transition-transform duration-300">→</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </main>
+          
+          <Footer />
+        </div>
+        
+        {/* 模态框 */}
+        <SettingsModal
+          isOpen={showSettingsModal}
+          onClose={() => setShowSettingsModal(false)}
+        />
+
+        <FreeApiPanel
+          isOpen={showFreeApiPanel}
+          onClose={() => setShowFreeApiPanel(false)}
+        />
+
+        <ApiConfigModal
+          isOpen={showApiConfigModal}
+          onClose={() => setShowApiConfigModal(false)}
+          currentConfig={apiConfig}
+          onSave={saveApiConfig}
+        />
+
+        <FreeApiKeyHelper
+          isOpen={showFreeApiKeyHelper}
+          onClose={() => setShowFreeApiKeyHelper(false)}
+          onApiKeyObtained={(provider: string, apiKey: string) => {
+            console.log(`获取到API密钥 - 服务商: ${provider}, 密钥: ${apiKey}`);
+            // 这里可以添加自动配置逻辑
+            setShowFreeApiKeyHelper(false);
+            setShowApiConfigModal(true); // 引导用户去配置API
+          }}
+        />
+
+        {/* 飞书配置模态框 */}
+        <FeishuConfigModal
+          isOpen={isFeishuConfigOpen}
+          onClose={() => setIsFeishuConfigOpen(false)}
+          onConfigSave={handleFeishuConfigSave}
+          currentConfig={feishuConfig}
+        />
+
+        {/* 地图功能指南模态框 */}
+        {showMapGuide && (
+          <MapGuide
+            onClose={() => setShowMapGuide(false)}
+          />
+        )}
+
+        {/* MCP服务面板 */}
+        {showMCPPanel && (
+          <MCPServicePanel
+            onClose={() => setShowMCPPanel(false)}
+          />
+        )}
+
+        {/* 用户中心面板 */}
+        {showUserPanel && (
+          <UserPanel
+            onClose={() => {
+              setShowUserPanel(false);
+              handleUserChange(); // 关闭时刷新用户状态
+            }}
+          />
+        )}
+
+        {/* 配置模态框 - 根据选择的模式显示 */}
+        {selectedTravelMode && (
+          <InitialModal
+            isOpen={showInitialModal}
+            onClose={() => {
+              setShowInitialModal(false);
+              setSelectedTravelMode(null);
+            }}
+            travelMode={selectedTravelMode}
+            onSubmit={(inputs) => {
+              const updatedInputs = { ...inputs, travelMode: selectedTravelMode };
+              handleInputSubmit(updatedInputs);
+            }}
+            onExit={handleExitApp}
+          />
+        )}
+
+        {/* 主要内容区域 - 如果有生成的内容则显示 */}
+        {!isLoading && !error && (userInputs || generatedScenario || generatedItinerary) && userInputs && (
+          <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-50 overflow-auto">
+            <div className="container mx-auto px-4 py-8">
+              {/* 返回按钮 */}
+              <div className="mb-6">
+                <button
+                  onClick={handleBackToFunctionSelection}
+                  className="flex items-center space-x-2 text-slate-300 hover:text-white transition-colors duration-200"
+                >
+                  <span>←</span>
+                  <span>返回选择页面</span>
+                </button>
+              </div>
+
+              {/* 结果显示 */}
+              <ResultsDisplay
+                userInputs={userInputs}
+                scenario={generatedScenario}
+                realisticItinerary={generatedItinerary}
+                socialMediaCopy={generatedSocialMediaCopy}
+                videoScript={generatedVideoScript}
+                generatedImages={generatedImagesList}
+                fakeEngagement={fakeEngagementData}
+                fakeComments={fakeComments}
+                travelReflectionCards={travelReflectionCards}
+                onReset={handleReset}
+                onBackToHome={handleBackToHome}
+                onBackToSetup={handleBackToSetup}
+                onExit={handleExitApp}
+                onRetryImage={handleRetryImage}
+                refreshError={refreshError}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* 加载状态 */}
+        {isLoading && (
+          <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-50 flex items-center justify-center">
+            <LoadingSpinner
+              currentStep={currentGenerationStep}
+              currentStepIndex={currentStepIndex}
+              totalSteps={totalGenerationSteps}
+              isVirtual={userInputs?.travelMode === 'fictional'}
+            />
+          </div>
+        )}
+
+        {/* 错误状态 */}
+        {error && (
+          <div className="fixed inset-0 bg-slate-900/95 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="max-w-md bg-red-900/50 border border-red-500/50 rounded-xl p-6 text-center">
+              <h3 className="text-red-300 font-semibold mb-2">❌ 生成失败</h3>
+              <p className="text-red-200 mb-4">{error}</p>
+        <button 
+                onClick={handleReset}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors duration-200"
+              >
+                重新开始
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* 🚀 性能监控组件 */}
+        <PerformanceMonitor
+          isVisible={showPerformanceMonitor}
+          currentProgress={performanceProgress}
+          currentPhase={performancePhase}
+          metrics={performanceMetrics}
+        />
+
+        {/* API配置弹窗 */}
+        <ApiConfigModal 
+          isOpen={showApiConfigModal} 
+          onClose={() => setShowApiConfigModal(false)}
+          currentConfig={apiConfig}
+          onSave={saveApiConfig}
+        />
+
+        {/* API监控面板 */}
+        <ApiMonitorPanel 
+          isOpen={showApiMonitorPanel} 
+          onClose={() => setShowApiMonitorPanel(false)} 
+        />
+      </div>
+    );
+  };
+
+  // 如果有应用级别错误，显示错误页面
+  if (appError) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+        <div className="max-w-md bg-red-900/50 border border-red-500/50 rounded-xl p-6 text-center">
+          <h2 className="text-red-300 text-xl font-semibold mb-4">应用启动错误</h2>
+          <p className="text-red-200 mb-4">{appError}</p>
+          <button
+            onClick={() => {
+              setAppError(null);
+              localStorage.removeItem('travel-generator-api-config');
+              window.location.reload();
+            }}
+            className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
+          >
+            清除缓存并重新加载
+        </button>
+      </div>
+    </div>
+  );
+}
+
+  // 主渲染
+  return renderCurrentPhase();
+};
+
+export default App; 

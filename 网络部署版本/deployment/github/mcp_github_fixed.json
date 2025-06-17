@@ -1,0 +1,61 @@
+{
+  "mcpServers": {
+    "browser-tools": {
+      "command": "npx",
+      "args": [
+        "@agentdeskai/browser-tools-mcp@latest"
+      ],
+      "env": {
+        "BROWSER_TOOLS_HOST": "127.0.0.1",
+        "BROWSER_TOOLS_PORT": "3025"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@executeautomation/playwright-mcp-server"
+      ]
+    },
+    "mcp-feedback-collector": {
+      "command": "node",
+      "args": [
+        "C:/Users/Administrator/Downloads/24小时自动抓热点技巧/node_modules/mcp-feedback-collector/dist/cli.js"
+      ],
+      "env": {
+        "MCP_API_KEY": "sk-ANAnmUDpzgDgvVwi2wupoxS0tEXviF4MzbhEsQAh9Wv2CgQW",
+        "MCP_API_BASE_URL": "https://api.ssopen.top",
+        "MCP_DEFAULT_MODEL": "grok-3",
+        "MCP_WEB_PORT": "5050",
+        "MCP_DIALOG_TIMEOUT": "1800",
+        "NODE_ENV": "production"
+      }
+    },
+    "promptx": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "-f",
+        "dpml-prompt@snapshot",
+        "mcp-server"
+      ]
+    },
+    "Figma": {
+      "url": "http://127.0.0.1:3845/sse"
+    },
+    "GitHub": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "ghcr.io/github/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_TOKEN_HERE"
+      }
+    }
+  }
+} 

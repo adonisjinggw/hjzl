@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幻境之旅生成器</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 50%, #581c87 100%);
+            min-height: 100vh;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass rounded-2xl p-8 max-w-2xl w-full text-center">
+            <!-- 标题 -->
+            <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                🌟 幻境之旅生成器
+            </h1>
+            <p class="text-blue-200 mb-8">AI驱动的梦境与现实探索工具</p>
+            
+            <!-- 功能选择 -->
+            <div class="grid md:grid-cols-2 gap-6 mb-8">
+                <button onclick="selectMode('virtual')" class="btn-primary p-6 rounded-xl text-left">
+                    <div class="text-2xl mb-2">🌙</div>
+                    <h3 class="text-xl font-semibold mb-2">虚拟模式</h3>
+                    <p class="text-sm opacity-80">探索梦境世界，生成奇幻故事</p>
+                </button>
+                
+                <button onclick="selectMode('real')" class="btn-primary p-6 rounded-xl text-left">
+                    <div class="text-2xl mb-2">🌍</div>
+                    <h3 class="text-xl font-semibold mb-2">真实模式</h3>
+                    <p class="text-sm opacity-80">基于现实地点，规划真实旅程</p>
+                </button>
+            </div>
+            
+            <!-- 状态显示 -->
+            <div id="status" class="glass rounded-lg p-4 mb-6 hidden">
+                <p id="statusText" class="text-green-300"></p>
+            </div>
+            
+            <!-- 输入区域 -->
+            <div id="inputArea" class="hidden">
+                <textarea 
+                    id="userInput" 
+                    placeholder="请描述您想要探索的内容..."
+                    class="w-full p-4 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 resize-none"
+                    rows="4"
+                ></textarea>
+                <button onclick="generateContent()" class="btn-primary px-8 py-3 rounded-lg mt-4 font-semibold">
+                    ✨ 开始生成
+                </button>
+            </div>
+            
+            <!-- 结果显示 -->
+            <div id="result" class="hidden mt-6 glass rounded-lg p-6 text-left">
+                <h3 class="text-xl font-semibold mb-4 text-center">🎭 生成结果</h3>
+                <div id="resultContent" class="space-y-4"></div>
+            </div>
+            
+            <!-- 版本信息 -->
+            <div class="mt-8 text-xs text-white/50">
+                版本 1.0 | 部署成功 ✅ | Cloudflare Pages
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentMode = null;
+        
+        function selectMode(mode) {
+            currentMode = mode;
+            const status = document.getElementById('status');
+            const statusText = document.getElementById('statusText');
+            const inputArea = document.getElementById('inputArea');
+            
+            status.classList.remove('hidden');
+            inputArea.classList.remove('hidden');
+            
+            if (mode === 'virtual') {
+                statusText.textContent = '🌙 虚拟模式已激活 - 准备探索梦境世界';
+            } else {
+                statusText.textContent = '🌍 真实模式已激活 - 准备规划现实旅程';
+            }
+        }
+        
+        function generateContent() {
+            const input = document.getElementById('userInput').value;
+            const result = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            
+            if (!input.trim()) {
+                alert('请先输入您的想法！');
+                return;
+            }
+            
+            // 显示加载状态
+            resultContent.innerHTML = '<div class="text-center"><div class="animate-spin text-2xl">⏳</div><p class="mt-2">AI正在生成内容...</p></div>';
+            result.classList.remove('hidden');
+            
+            // 模拟AI生成（实际项目中这里会调用真实的AI API）
+            setTimeout(() => {
+                const mockContent = generateMockContent(input, currentMode);
+                resultContent.innerHTML = mockContent;
+            }, 2000);
+        }
+        
+        function generateMockContent(input, mode) {
+            if (mode === 'virtual') {
+                return `
+                    <div class="space-y-4">
+                        <div class="bg-purple-500/20 p-4 rounded-lg">
+                            <h4 class="font-semibold text-purple-300">🌟 梦境场景</h4>
+                            <p>基于您的描述"${input}"，我为您构建了一个奇幻的梦境世界...</p>
+                        </div>
+                        <div class="bg-blue-500/20 p-4 rounded-lg">
+                            <h4 class="font-semibold text-blue-300">🎭 故事情节</h4>
+                            <p>在这个神秘的世界中，您将遇到意想不到的冒险...</p>
+                        </div>
+                        <div class="bg-green-500/20 p-4 rounded-lg">
+                            <h4 class="font-semibold text-green-300">🗺️ 探索路径</h4>
+                            <p>建议的探索顺序：梦境入口 → 幻想森林 → 星空城堡</p>
+                        </div>
+                    </div>
+                `;
+            } else {
+                return `
+                    <div class="space-y-4">
+                        <div class="bg-emerald-500/20 p-4 rounded-lg">
+                            <h4 class="font-semibold text-emerald-300">📍 目的地推荐</h4>
+                            <p>基于"${input}"，为您推荐以下真实地点...</p>
+                        </div>
+                        <div class="bg-orange-500/20 p-4 rounded-lg">
+                            <h4 class="font-semibold text-orange-300">🚗 行程规划</h4>
+                            <p>建议行程：3天2夜，包含交通、住宿、景点安排</p>
+                        </div>
+                        <div class="bg-pink-500/20 p-4 rounded-lg">
+                            <h4 class="font-semibold text-pink-300">💰 预算估算</h4>
+                            <p>预计费用：¥2000-3000（包含交通、住宿、餐饮）</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+        
+        // 页面加载完成提示
+        window.addEventListener('load', function() {
+            console.log('🎉 幻境之旅生成器加载成功！');
+        });
+    </script>
+</body>
+</html> 

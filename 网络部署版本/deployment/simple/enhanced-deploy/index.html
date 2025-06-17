@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幻境之旅生成器 - 增强版</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 50%, #581c87 100%);
+            min-height: 100vh;
+            font-family: 'Microsoft YaHei', sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(59, 130, 246, 0.3);
+        }
+        .btn-secondary {
+            background: linear-gradient(45deg, #10b981, #06b6d4);
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(16, 185, 129, 0.3);
+        }
+        .feature-card {
+            transition: all 0.3s ease;
+        }
+        .feature-card:hover {
+            transform: scale(1.02);
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            height: 4px;
+            border-radius: 2px;
+            transition: width 0.3s ease;
+        }
+        .typing-animation {
+            border-right: 2px solid #3b82f6;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 50% { border-color: transparent; }
+            51%, 100% { border-color: #3b82f6; }
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div class="min-h-screen flex items-center justify-center p-4">
+        <div class="glass rounded-2xl p-8 max-w-4xl w-full">
+            <!-- 头部 -->
+            <div class="text-center mb-8">
+                <h1 class="text-4xl font-bold mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+                    🌟 幻境之旅生成器
+                </h1>
+                <p class="text-blue-200 mb-4">AI驱动的梦境与现实探索工具 - 增强版</p>
+                <div class="flex justify-center space-x-4 text-sm">
+                    <span class="bg-green-500/20 px-3 py-1 rounded-full">✅ 稳定运行</span>
+                    <span class="bg-blue-500/20 px-3 py-1 rounded-full">🚀 功能增强</span>
+                    <span class="bg-purple-500/20 px-3 py-1 rounded-full">🎨 AI生成</span>
+                </div>
+            </div>
+
+            <!-- 主要内容区域 -->
+            <div id="mainContent">
+                <!-- 功能选择页面 -->
+                <div id="functionSelection" class="space-y-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition-transform" onclick="selectMode('virtual')">
+                            <div class="text-3xl mb-4">🌙</div>
+                            <h3 class="text-xl font-semibold mb-2">虚拟模式</h3>
+                            <p class="text-sm opacity-80 mb-4">探索梦境世界，生成奇幻故事</p>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex items-center"><span class="text-green-400">✓</span><span class="ml-2">AI场景生成</span></div>
+                                <div class="flex items-center"><span class="text-green-400">✓</span><span class="ml-2">社交媒体文案</span></div>
+                                <div class="flex items-center"><span class="text-green-400">✓</span><span class="ml-2">视频脚本创作</span></div>
+                                <div class="flex items-center"><span class="text-green-400">✓</span><span class="ml-2">AI图片生成</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="glass p-6 rounded-xl cursor-pointer hover:scale-105 transition-transform" onclick="selectMode('real')">
+                            <div class="text-3xl mb-4">🌍</div>
+                            <h3 class="text-xl font-semibold mb-2">真实模式</h3>
+                            <p class="text-sm opacity-80 mb-4">基于现实地点，规划真实旅程</p>
+                            <div class="space-y-2 text-xs">
+                                <div class="flex items-center"><span class="text-green-400">✓</span><span class="ml-2">智能行程规划</span></div>
+                                <div class="flex items-center"><span class="text-green-400">✓</span><span class="ml-2">预算估算</span></div>
+                                <div class="flex items-center"><span class="text-green-400">✓</span><span class="ml-2">地点推荐</span></div>
+                                <div class="flex items-center"><span class="text-green-400">✓</span><span class="ml-2">旅行图片</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 输入页面 -->
+                <div id="inputPage" class="hidden space-y-6">
+                    <div class="text-center">
+                        <h2 id="modeTitle" class="text-2xl font-bold mb-2"></h2>
+                        <p id="modeDescription" class="text-blue-200"></p>
+                    </div>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">主要描述</label>
+                            <textarea 
+                                id="mainInput" 
+                                placeholder="请详细描述您想要探索的内容..."
+                                class="w-full p-4 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/60 resize-none"
+                                rows="4"
+                            ></textarea>
+                        </div>
+                        
+                        <div class="grid md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium mb-2">风格偏好</label>
+                                <select id="styleSelect" class="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white">
+                                    <option value="romantic">浪漫风格</option>
+                                    <option value="adventure">冒险刺激</option>
+                                    <option value="peaceful">宁静舒适</option>
+                                    <option value="mysterious">神秘探索</option>
+                                    <option value="luxury">奢华体验</option>
+                                </select>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium mb-2">预算范围</label>
+                                <select id="budgetSelect" class="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white">
+                                    <option value="low">经济实惠 (1000-3000元)</option>
+                                    <option value="medium">中等预算 (3000-8000元)</option>
+                                    <option value="high">高端体验 (8000-20000元)</option>
+                                    <option value="luxury">奢华定制 (20000元以上)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="flex space-x-4">
+                            <button onclick="goBack()" class="btn-secondary px-6 py-3 rounded-lg font-semibold">
+                                ← 返回
+                            </button>
+                            <button onclick="startGeneration()" class="btn-primary flex-1 py-3 rounded-lg font-semibold">
+                                ✨ 开始生成内容
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 生成页面 -->
+                <div id="generationPage" class="hidden space-y-6">
+                    <div class="text-center">
+                        <h2 class="text-2xl font-bold mb-4">🎨 AI正在为您创作...</h2>
+                        <div class="bg-white/10 rounded-lg p-4 mb-6">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-sm">生成进度</span>
+                                <span id="progressText" class="text-sm">0%</span>
+                            </div>
+                            <div class="bg-white/20 rounded-full h-2">
+                                <div id="progressBar" class="progress-bar w-0"></div>
+                            </div>
+                        </div>
+                        <p id="currentStep" class="text-blue-200 typing-animation">准备开始生成...</p>
+                    </div>
+                </div>
+
+                <!-- 结果页面 -->
+                <div id="resultPage" class="hidden space-y-6">
+                    <div class="text-center mb-6">
+                        <h2 class="text-2xl font-bold mb-2">🎉 生成完成！</h2>
+                        <p class="text-blue-200">为您精心创作的内容已准备就绪</p>
+                    </div>
+                    
+                    <div id="resultContent" class="space-y-6">
+                        <!-- 动态生成的结果内容 -->
+                    </div>
+                    
+                    <div class="flex space-x-4">
+                        <button onclick="regenerateContent()" class="btn-secondary px-6 py-3 rounded-lg font-semibold">
+                            🔄 重新生成
+                        </button>
+                        <button onclick="startOver()" class="btn-primary px-6 py-3 rounded-lg font-semibold">
+                            🏠 重新开始
+                        </button>
+                        <button onclick="shareContent()" class="bg-green-600 hover:bg-green-700 px-6 py-3 rounded-lg font-semibold transition-colors">
+                            📤 分享内容
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部信息 -->
+            <div class="mt-8 text-center text-xs text-white/50">
+                <div class="flex justify-center items-center space-x-4">
+                    <span>增强版 2.0</span>
+                    <span>•</span>
+                    <span>部署成功 ✅</span>
+                    <span>•</span>
+                    <span>Cloudflare Pages</span>
+                    <span>•</span>
+                    <span id="currentTime"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 全局状态
+        let currentMode = null;
+        let generationSteps = [];
+        let currentStepIndex = 0;
+        let generatedData = {};
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            updateTime();
+            setInterval(updateTime, 1000);
+            console.log('🎉 幻境之旅生成器增强版加载成功！');
+        });
+
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('zh-CN');
+        }
+
+        function selectMode(mode) {
+            currentMode = mode;
+            
+            const modeTitle = document.getElementById('modeTitle');
+            const modeDescription = document.getElementById('modeDescription');
+            
+            if (mode === 'virtual') {
+                modeTitle.textContent = '🌙 虚拟模式设置';
+                modeDescription.textContent = '让AI为您创造一个奇幻的梦境世界';
+                generationSteps = [
+                    '🎭 构思虚拟场景概念',
+                    '🌟 生成奇幻世界设定',
+                    '📱 创作社交媒体文案',
+                    '🎬 编写视频脚本分镜',
+                    '🎨 生成场景配图',
+                    '💬 制作用户评论',
+                    '📊 计算互动数据',
+                    '✨ 生成感言卡片'
+                ];
+            } else {
+                modeTitle.textContent = '🌍 真实模式设置';
+                modeDescription.textContent = '基于真实地点为您规划完美的旅行体验';
+                generationSteps = [
+                    '🗺️ 分析旅行目的地',
+                    '📅 制定详细行程规划',
+                    '📱 撰写推广文案',
+                    '🎬 创建视频脚本',
+                    '📷 生成旅行图片',
+                    '💬 模拟用户反馈',
+                    '📈 统计互动数据',
+                    '🎭 制作回忆卡片'
+                ];
+            }
+            
+            showPage('inputPage');
+        }
+
+        function goBack() {
+            showPage('functionSelection');
+        }
+
+        function startGeneration() {
+            const mainInput = document.getElementById('mainInput').value;
+            const style = document.getElementById('styleSelect').value;
+            const budget = document.getElementById('budgetSelect').value;
+            
+            if (!mainInput.trim()) {
+                alert('请先输入您的想法！');
+                return;
+            }
+            
+            // 保存用户输入
+            generatedData = {
+                mode: currentMode,
+                input: mainInput,
+                style: style,
+                budget: budget,
+                timestamp: new Date().toISOString()
+            };
+            
+            showPage('generationPage');
+            runGenerationProcess();
+        }
+
+        function runGenerationProcess() {
+            currentStepIndex = 0;
+            
+            const interval = setInterval(() => {
+                if (currentStepIndex < generationSteps.length) {
+                    updateProgress();
+                    currentStepIndex++;
+                } else {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        generateFinalContent();
+                        showPage('resultPage');
+                    }, 1000);
+                }
+            }, 1500);
+        }
+
+        function updateProgress() {
+            const progress = ((currentStepIndex + 1) / generationSteps.length) * 100;
+            const progressBar = document.getElementById('progressBar');
+            const progressText = document.getElementById('progressText');
+            const currentStep = document.getElementById('currentStep');
+            
+            progressBar.style.width = progress + '%';
+            progressText.textContent = Math.round(progress) + '%';
+            currentStep.textContent = generationSteps[currentStepIndex];
+        }
+
+        function generateFinalContent() {
+            const resultContent = document.getElementById('resultContent');
+            
+            if (currentMode === 'virtual') {
+                resultContent.innerHTML = generateVirtualContent();
+            } else {
+                resultContent.innerHTML = generateRealContent();
+            }
+        }
+
+        function generateVirtualContent() {
+            const input = generatedData.input;
+            const style = generatedData.style;
+            
+            return `
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-4 text-purple-300">🌟 奇幻场景</h3>
+                        <p class="mb-4">基于您的描述"${input}"，我为您构建了一个${getStyleDescription(style)}的梦境世界。</p>
+                        <div class="bg-purple-500/20 p-4 rounded-lg">
+                            <p class="text-sm">在这个神秘的世界中，古老的魔法与现代科技交融，创造出前所未见的奇迹景象。天空中漂浮着发光的水晶岛屿，地面上生长着会唱歌的彩虹树...</p>
+                        </div>
+                    </div>
+                    
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-4 text-blue-300">🎭 故事情节</h3>
+                        <div class="space-y-3">
+                            <div class="bg-blue-500/20 p-3 rounded-lg">
+                                <h4 class="font-semibold text-sm">第一章：神秘的召唤</h4>
+                                <p class="text-xs mt-1">您收到了来自异世界的神秘信号...</p>
+                            </div>
+                            <div class="bg-blue-500/20 p-3 rounded-lg">
+                                <h4 class="font-semibold text-sm">第二章：穿越之门</h4>
+                                <p class="text-xs mt-1">通过古老的传送门进入奇幻世界...</p>
+                            </div>
+                            <div class="bg-blue-500/20 p-3 rounded-lg">
+                                <h4 class="font-semibold text-sm">第三章：伙伴相遇</h4>
+                                <p class="text-xs mt-1">遇到了志同道合的冒险伙伴...</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-4 text-green-300">📱 社交媒体文案</h3>
+                        <div class="bg-green-500/20 p-4 rounded-lg">
+                            <p class="font-semibold mb-2">🌟 今天体验了最不可思议的梦境之旅！</p>
+                            <p class="text-sm mb-3">${input} 的奇幻世界真的太震撼了！每一个细节都让人惊叹，仿佛真的置身于另一个维度。强烈推荐给所有喜欢奇幻冒险的朋友们！</p>
+                            <div class="text-xs text-green-200">
+                                #幻境之旅 #奇幻世界 #AI生成 #梦境探索 #${style}风格
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-4 text-orange-300">🎬 视频脚本</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="bg-orange-500/20 p-3 rounded-lg">
+                                <strong>开场 (0-10秒):</strong> 神秘音乐响起，镜头从现实世界缓缓转向奇幻之门
+                            </div>
+                            <div class="bg-orange-500/20 p-3 rounded-lg">
+                                <strong>主体 (10-45秒):</strong> 展示${input}的壮丽景象，配以震撼的视觉效果
+                            </div>
+                            <div class="bg-orange-500/20 p-3 rounded-lg">
+                                <strong>结尾 (45-60秒):</strong> 回到现实，留下悬念和期待
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="text-xl font-semibold mb-4 text-pink-300">💬 用户评论模拟</h3>
+                    <div class="space-y-3">
+                        <div class="bg-pink-500/20 p-3 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <div class="w-8 h-8 bg-gradient-to-r from-pink-400 to-purple-400 rounded-full flex items-center justify-center text-xs">👤</div>
+                                <span class="ml-2 font-semibold text-sm">梦境探索者</span>
+                                <span class="ml-auto text-xs text-pink-200">⭐⭐⭐⭐⭐</span>
+                            </div>
+                            <p class="text-sm">太棒了！这个${style}风格的世界设定完全超出了我的想象，每个细节都很用心！</p>
+                        </div>
+                        <div class="bg-pink-500/20 p-3 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <div class="w-8 h-8 bg-gradient-to-r from-blue-400 to-green-400 rounded-full flex items-center justify-center text-xs">👤</div>
+                                <span class="ml-2 font-semibold text-sm">奇幻爱好者</span>
+                                <span class="ml-auto text-xs text-pink-200">⭐⭐⭐⭐⭐</span>
+                            </div>
+                            <p class="text-sm">AI生成的内容质量真的很高，故事情节引人入胜，强烈推荐！</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function generateRealContent() {
+            const input = generatedData.input;
+            const budget = generatedData.budget;
+            
+            return `
+                <div class="grid md:grid-cols-2 gap-6">
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-4 text-emerald-300">📍 目的地推荐</h3>
+                        <p class="mb-4">基于"${input}"，为您推荐以下精选目的地：</p>
+                        <div class="space-y-3">
+                            <div class="bg-emerald-500/20 p-3 rounded-lg">
+                                <h4 class="font-semibold text-sm">主要目的地</h4>
+                                <p class="text-xs mt-1">根据您的需求精心挑选的核心景点</p>
+                            </div>
+                            <div class="bg-emerald-500/20 p-3 rounded-lg">
+                                <h4 class="font-semibold text-sm">周边景点</h4>
+                                <p class="text-xs mt-1">值得一游的附近景点和隐藏宝地</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-4 text-blue-300">📅 行程规划</h3>
+                        <div class="space-y-3">
+                            <div class="bg-blue-500/20 p-3 rounded-lg">
+                                <h4 class="font-semibold text-sm">第1天：抵达与适应</h4>
+                                <p class="text-xs mt-1">机场接送 → 酒店入住 → 周边探索</p>
+                            </div>
+                            <div class="bg-blue-500/20 p-3 rounded-lg">
+                                <h4 class="font-semibold text-sm">第2天：核心体验</h4>
+                                <p class="text-xs mt-1">主要景点游览 → 特色美食 → 文化体验</p>
+                            </div>
+                            <div class="bg-blue-500/20 p-3 rounded-lg">
+                                <h4 class="font-semibold text-sm">第3天：深度探索</h4>
+                                <p class="text-xs mt-1">隐藏景点 → 当地体验 → 购物纪念</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-4 text-yellow-300">💰 预算分析</h3>
+                        <div class="bg-yellow-500/20 p-4 rounded-lg">
+                            <div class="grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <h4 class="font-semibold mb-2">预算等级：${getBudgetDescription(budget)}</h4>
+                                    <div class="space-y-1 text-xs">
+                                        <div class="flex justify-between">
+                                            <span>交通费用:</span>
+                                            <span>${getBudgetAmount(budget, 'transport')}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>住宿费用:</span>
+                                            <span>${getBudgetAmount(budget, 'hotel')}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>餐饮费用:</span>
+                                            <span>${getBudgetAmount(budget, 'food')}</span>
+                                        </div>
+                                        <div class="flex justify-between">
+                                            <span>景点门票:</span>
+                                            <span>${getBudgetAmount(budget, 'tickets')}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <h4 class="font-semibold mb-2">总计预估</h4>
+                                    <div class="text-2xl font-bold text-yellow-200">
+                                        ${getBudgetTotal(budget)}
+                                    </div>
+                                    <p class="text-xs mt-2">*价格仅供参考，实际费用可能有所差异</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="glass p-6 rounded-xl">
+                        <h3 class="text-xl font-semibold mb-4 text-purple-300">🎬 旅行视频脚本</h3>
+                        <div class="space-y-2 text-sm">
+                            <div class="bg-purple-500/20 p-3 rounded-lg">
+                                <strong>开场 (0-15秒):</strong> 展示目的地的标志性景观，配以激动人心的音乐
+                            </div>
+                            <div class="bg-purple-500/20 p-3 rounded-lg">
+                                <strong>体验 (15-45秒):</strong> 记录${input}的精彩瞬间和独特体验
+                            </div>
+                            <div class="bg-purple-500/20 p-3 rounded-lg">
+                                <strong>结尾 (45-60秒):</strong> 总结旅行感受，鼓励观众亲自体验
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="glass p-6 rounded-xl">
+                    <h3 class="text-xl font-semibold mb-4 text-green-300">📱 分享文案</h3>
+                    <div class="bg-green-500/20 p-4 rounded-lg">
+                        <p class="font-semibold mb-2">🌍 ${input} 之旅圆满结束！</p>
+                        <p class="text-sm mb-3">这次旅行真的太棒了！从规划到体验，每一个环节都很完美。特别推荐给想要${getBudgetDescription(budget)}旅行体验的朋友们。风景美到窒息，美食让人回味无穷！</p>
+                        <div class="text-xs text-green-200">
+                            #真实旅行 #${input} #旅行分享 #${budget}预算 #推荐目的地
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function getStyleDescription(style) {
+            const styles = {
+                romantic: '浪漫唯美',
+                adventure: '冒险刺激',
+                peaceful: '宁静祥和',
+                mysterious: '神秘莫测',
+                luxury: '奢华精致'
+            };
+            return styles[style] || '独特';
+        }
+
+        function getBudgetDescription(budget) {
+            const budgets = {
+                low: '经济实惠',
+                medium: '中等预算',
+                high: '高端体验',
+                luxury: '奢华定制'
+            };
+            return budgets[budget] || '合理';
+        }
+
+        function getBudgetAmount(budget, type) {
+            const amounts = {
+                low: { transport: '500-800元', hotel: '200-400元/晚', food: '100-200元/天', tickets: '200-500元' },
+                medium: { transport: '800-1500元', hotel: '400-800元/晚', food: '200-400元/天', tickets: '500-1000元' },
+                high: { transport: '1500-3000元', hotel: '800-1500元/晚', food: '400-800元/天', tickets: '1000-2000元' },
+                luxury: { transport: '3000+元', hotel: '1500+元/晚', food: '800+元/天', tickets: '2000+元' }
+            };
+            return amounts[budget][type] || '待定';
+        }
+
+        function getBudgetTotal(budget) {
+            const totals = {
+                low: '2000-4000元',
+                medium: '4000-8000元',
+                high: '8000-15000元',
+                luxury: '15000+元'
+            };
+            return totals[budget] || '待估算';
+        }
+
+        function showPage(pageId) {
+            const pages = ['functionSelection', 'inputPage', 'generationPage', 'resultPage'];
+            pages.forEach(id => {
+                document.getElementById(id).classList.add('hidden');
+            });
+            document.getElementById(pageId).classList.remove('hidden');
+        }
+
+        function regenerateContent() {
+            showPage('generationPage');
+            runGenerationProcess();
+        }
+
+        function startOver() {
+            currentMode = null;
+            generatedData = {};
+            showPage('functionSelection');
+        }
+
+        function shareContent() {
+            const shareText = `我刚刚使用幻境之旅生成器创作了一个${currentMode === 'virtual' ? '奇幻' : '真实'}的旅行体验！快来试试：${window.location.href}`;
+            
+            if (navigator.share) {
+                navigator.share({
+                    title: '幻境之旅生成器',
+                    text: shareText,
+                    url: window.location.href
+                });
+            } else {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    alert('分享链接已复制到剪贴板！');
+                });
+            }
+        }
+
+        // 页面加载完成提示
+        window.addEventListener('load', function() {
+            console.log('🎉 幻境之旅生成器增强版加载成功！');
+        });
+    </script>
+</body>
+</html> 

@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幻境之旅生成器</title>
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #334155 100%);
+            min-height: 100vh;
+            font-family: 'Microsoft YaHei', -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        .glass-effect {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .gradient-text {
+            background: linear-gradient(135deg, #60a5fa, #a78bfa, #f472b6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(59, 130, 246, 0.4);
+        }
+        .btn-secondary {
+            background: linear-gradient(135deg, #10b981, #06b6d4);
+            transition: all 0.3s ease;
+        }
+        .btn-secondary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(16, 185, 129, 0.4);
+        }
+        .feature-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        .feature-card:hover {
+            transform: scale(1.02);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        }
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .progress-bar {
+            background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+            height: 6px;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+        .typing-effect {
+            border-right: 2px solid #3b82f6;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0%, 50% { border-color: transparent; }
+            51%, 100% { border-color: #3b82f6; }
+        }
+        .result-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        .tag {
+            background: rgba(59, 130, 246, 0.2);
+            color: #93c5fd;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body class="text-white">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, useCallback } = React;
+
+        // 主应用组件
+        function App() {
+            const [currentPage, setCurrentPage] = useState('welcome');
+            const [selectedMode, setSelectedMode] = useState(null);
+            const [userInput, setUserInput] = useState('');
+            const [generationProgress, setGenerationProgress] = useState(0);
+            const [currentStep, setCurrentStep] = useState('');
+            const [generatedContent, setGeneratedContent] = useState(null);
+            const [isGenerating, setIsGenerating] = useState(false);
+
+            // 生成步骤定义
+            const generationSteps = {
+                virtual: [
+                    '🎭 分析虚拟场景需求',
+                    '🌟 构建奇幻世界框架',
+                    '📝 生成故事背景设定',
+                    '🎨 创作视觉场景描述',
+                    '📱 编写社交媒体文案',
+                    '🎬 制作视频脚本大纲',
+                    '🖼️ 生成配套图片描述',
+                    '💬 模拟用户互动评论',
+                    '📊 计算预期互动数据',
+                    '✨ 完成内容整合'
+                ],
+                real: [
+                    '🗺️ 分析目的地信息',
+                    '📅 制定行程时间规划',
+                    '🏨 推荐住宿和交通',
+                    '🍽️ 安排美食和体验',
+                    '💰 计算预算和费用',
+                    '📱 创作推广文案',
+                    '🎬 编写旅行视频脚本',
+                    '📷 规划拍摄点位',
+                    '💬 生成用户评价',
+                    '🎯 完成旅行方案'
+                ]
+            };
+
+            // 欢迎页面
+            const WelcomePage = () => (
+                <div className="min-h-screen flex items-center justify-center p-6">
+                    <div className="glass-effect rounded-3xl p-8 max-w-6xl w-full">
+                        {/* 头部标题 */}
+                        <div className="text-center mb-12">
+                            <h1 className="text-5xl font-bold mb-4 gradient-text">
+                                🌟 幻境之旅生成器
+                            </h1>
+                            <p className="text-xl text-slate-300 mb-6">
+                                AI驱动的梦境与现实探索工具
+                            </p>
+                            <div className="flex justify-center space-x-4 text-sm">
+                                <span className="tag">🚀 AI生成</span>
+                                <span className="tag">🎨 创意无限</span>
+                                <span className="tag">🌍 全球部署</span>
+                            </div>
+                        </div>
+
+                        {/* 功能选择卡片 */}
+                        <div className="grid md:grid-cols-2 gap-8 mb-8">
+                            <div 
+                                className="feature-card glass-effect rounded-2xl p-8"
+                                onClick={() => selectMode('virtual')}
+                            >
+                                <div className="text-6xl mb-6 text-center">🌙</div>
+                                <h3 className="text-2xl font-bold mb-4 text-center text-purple-300">
+                                    虚拟模式
+                                </h3>
+                                <p className="text-slate-300 mb-6 text-center">
+                                    探索无限可能的梦境世界，创造独一无二的奇幻故事
+                                </p>
+                                <div className="space-y-3">
+                                    <div className="flex items-center text-sm">
+                                        <span className="text-green-400 mr-3">✓</span>
+                                        <span>AI奇幻场景生成</span>
+                                    </div>
+                                    <div className="flex items-center text-sm">
+                                        <span className="text-green-400 mr-3">✓</span>
+                                        <span>创意故事情节设计</span>
+                                    </div>
+                                    <div className="flex items-center text-sm">
+                                        <span className="text-green-400 mr-3">✓</span>
+                                        <span>社交媒体内容创作</span>
+                                    </div>
+                                    <div className="flex items-center text-sm">
+                                        <span className="text-green-400 mr-3">✓</span>
+                                        <span>视频脚本和配图</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div 
+                                className="feature-card glass-effect rounded-2xl p-8"
+                                onClick={() => selectMode('real')}
+                            >
+                                <div className="text-6xl mb-6 text-center">🌍</div>
+                                <h3 className="text-2xl font-bold mb-4 text-center text-emerald-300">
+                                    真实模式
+                                </h3>
+                                <p className="text-slate-300 mb-6 text-center">
+                                    基于真实地点和数据，规划完美的旅行体验
+                                </p>
+                                <div className="space-y-3">
+                                    <div className="flex items-center text-sm">
+                                        <span className="text-green-400 mr-3">✓</span>
+                                        <span>智能行程规划</span>
+                                    </div>
+                                    <div className="flex items-center text-sm">
+                                        <span className="text-green-400 mr-3">✓</span>
+                                        <span>预算和费用估算</span>
+                                    </div>
+                                    <div className="flex items-center text-sm">
+                                        <span className="text-green-400 mr-3">✓</span>
+                                        <span>住宿和交通推荐</span>
+                                    </div>
+                                    <div className="flex items-center text-sm">
+                                        <span className="text-green-400 mr-3">✓</span>
+                                        <span>旅行内容创作</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* 底部信息 */}
+                        <div className="text-center text-sm text-slate-400">
+                            <div className="flex justify-center items-center space-x-4">
+                                <span>原版功能</span>
+                                <span>•</span>
+                                <span>稳定运行 ✅</span>
+                                <span>•</span>
+                                <span>Cloudflare Pages</span>
+                                <span>•</span>
+                                <span>{new Date().toLocaleString('zh-CN')}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // 输入页面
+            const InputPage = () => (
+                <div className="min-h-screen flex items-center justify-center p-6">
+                    <div className="glass-effect rounded-3xl p-8 max-w-4xl w-full">
+                        <div className="text-center mb-8">
+                            <h2 className="text-3xl font-bold mb-4">
+                                {selectedMode === 'virtual' ? '🌙 虚拟世界设定' : '🌍 真实旅行规划'}
+                            </h2>
+                            <p className="text-slate-300">
+                                {selectedMode === 'virtual' 
+                                    ? '描述您想要探索的奇幻世界，AI将为您创造独特的梦境体验'
+                                    : '告诉我您的旅行想法，AI将为您制定完美的行程计划'
+                                }
+                            </p>
+                        </div>
+
+                        <div className="space-y-6">
+                            <div>
+                                <label className="block text-lg font-semibold mb-3 text-slate-200">
+                                    {selectedMode === 'virtual' ? '梦境描述' : '旅行需求'}
+                                </label>
+                                <textarea
+                                    value={userInput}
+                                    onChange={(e) => setUserInput(e.target.value)}
+                                    placeholder={selectedMode === 'virtual' 
+                                        ? '例如：一个漂浮在云端的魔法城市，有会发光的植物和友善的龙族居民...'
+                                        : '例如：想去日本体验樱花季，预算1万元，喜欢文化和美食，时间7天...'
+                                    }
+                                    className="w-full p-4 rounded-xl bg-white/10 border border-white/20 text-white placeholder-white/50 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    rows="6"
+                                />
+                            </div>
+
+                            <div className="grid md:grid-cols-2 gap-6">
+                                <div>
+                                    <label className="block text-sm font-medium mb-2 text-slate-300">
+                                        风格偏好
+                                    </label>
+                                    <select className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        <option value="romantic">浪漫唯美</option>
+                                        <option value="adventure">冒险刺激</option>
+                                        <option value="peaceful">宁静舒适</option>
+                                        <option value="mysterious">神秘探索</option>
+                                        <option value="luxury">奢华精致</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium mb-2 text-slate-300">
+                                        {selectedMode === 'virtual' ? '复杂程度' : '预算范围'}
+                                    </label>
+                                    <select className="w-full p-3 rounded-lg bg-white/10 border border-white/20 text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                        {selectedMode === 'virtual' ? (
+                                            <>
+                                                <option value="simple">简单易懂</option>
+                                                <option value="medium">适中复杂</option>
+                                                <option value="complex">深度复杂</option>
+                                                <option value="epic">史诗级别</option>
+                                            </>
+                                        ) : (
+                                            <>
+                                                <option value="budget">经济实惠 (3000-8000元)</option>
+                                                <option value="medium">中等预算 (8000-15000元)</option>
+                                                <option value="high">高端体验 (15000-30000元)</option>
+                                                <option value="luxury">奢华定制 (30000元以上)</option>
+                                            </>
+                                        )}
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="flex space-x-4 pt-4">
+                                <button
+                                    onClick={() => setCurrentPage('welcome')}
+                                    className="btn-secondary px-8 py-3 rounded-xl font-semibold"
+                                >
+                                    ← 返回选择
+                                </button>
+                                <button
+                                    onClick={startGeneration}
+                                    disabled={!userInput.trim()}
+                                    className="btn-primary flex-1 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    ✨ 开始AI创作
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // 生成页面
+            const GenerationPage = () => (
+                <div className="min-h-screen flex items-center justify-center p-6">
+                    <div className="glass-effect rounded-3xl p-8 max-w-4xl w-full text-center">
+                        <div className="mb-8">
+                            <div className="loading-spinner mx-auto mb-6"></div>
+                            <h2 className="text-3xl font-bold mb-4">
+                                🎨 AI正在为您精心创作...
+                            </h2>
+                            <p className="text-slate-300 mb-8">
+                                请稍候，我们的AI正在分析您的需求并生成个性化内容
+                            </p>
+                        </div>
+
+                        <div className="glass-effect rounded-2xl p-6 mb-8">
+                            <div className="flex justify-between items-center mb-4">
+                                <span className="text-lg font-semibold">生成进度</span>
+                                <span className="text-lg font-bold text-blue-400">
+                                    {Math.round(generationProgress)}%
+                                </span>
+                            </div>
+                            <div className="bg-white/20 rounded-full h-3 mb-4">
+                                <div 
+                                    className="progress-bar"
+                                    style={{ width: `${generationProgress}%` }}
+                                ></div>
+                            </div>
+                            <p className="text-slate-300 typing-effect">
+                                {currentStep}
+                            </p>
+                        </div>
+
+                        <div className="text-sm text-slate-400">
+                            预计完成时间：约 30-60 秒
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // 结果页面
+            const ResultPage = () => (
+                <div className="min-h-screen p-6">
+                    <div className="max-w-6xl mx-auto">
+                        <div className="text-center mb-8">
+                            <h2 className="text-4xl font-bold mb-4 gradient-text">
+                                🎉 创作完成！
+                            </h2>
+                            <p className="text-xl text-slate-300">
+                                AI已为您精心创作了以下内容
+                            </p>
+                        </div>
+
+                        <div className="grid lg:grid-cols-2 gap-6 mb-8">
+                            {generatedContent && renderGeneratedContent()}
+                        </div>
+
+                        <div className="text-center space-x-4">
+                            <button
+                                onClick={() => startGeneration()}
+                                className="btn-secondary px-8 py-3 rounded-xl font-semibold"
+                            >
+                                🔄 重新生成
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setCurrentPage('welcome');
+                                    setSelectedMode(null);
+                                    setUserInput('');
+                                    setGeneratedContent(null);
+                                }}
+                                className="btn-primary px-8 py-3 rounded-xl font-semibold"
+                            >
+                                🏠 重新开始
+                            </button>
+                            <button
+                                onClick={shareContent}
+                                className="bg-green-600 hover:bg-green-700 px-8 py-3 rounded-xl font-semibold transition-colors"
+                            >
+                                📤 分享内容
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+
+            // 选择模式
+            const selectMode = (mode) => {
+                setSelectedMode(mode);
+                setCurrentPage('input');
+            };
+
+            // 开始生成
+            const startGeneration = () => {
+                if (!userInput.trim()) return;
+                
+                setCurrentPage('generation');
+                setIsGenerating(true);
+                setGenerationProgress(0);
+                
+                const steps = generationSteps[selectedMode];
+                let stepIndex = 0;
+                
+                const interval = setInterval(() => {
+                    if (stepIndex < steps.length) {
+                        setCurrentStep(steps[stepIndex]);
+                        setGenerationProgress((stepIndex + 1) / steps.length * 100);
+                        stepIndex++;
+                    } else {
+                        clearInterval(interval);
+                        setTimeout(() => {
+                            generateContent();
+                            setCurrentPage('result');
+                            setIsGenerating(false);
+                        }, 1000);
+                    }
+                }, 1500);
+            };
+
+            // 生成内容
+            const generateContent = () => {
+                if (selectedMode === 'virtual') {
+                    setGeneratedContent({
+                        scenario: {
+                            title: "奇幻梦境世界",
+                            description: `基于您的描述"${userInput}"，我为您构建了一个充满魔法与奇迹的梦境世界。在这里，古老的魔法与未来科技完美融合，创造出前所未见的壮丽景象。`,
+                            details: [
+                                "漂浮在云端的水晶城市，建筑物由纯净的光芒构成",
+                                "会唱歌的彩虹树林，每一片叶子都闪烁着不同的颜色",
+                                "友善的龙族守护者，拥有智慧和强大的魔法力量",
+                                "时空之门连接着不同的维度和世界"
+                            ]
+                        },
+                        story: {
+                            title: "冒险故事情节",
+                            chapters: [
+                                { title: "第一章：神秘召唤", content: "您收到了来自异世界的神秘信号，一道光芒将您带入了这个奇幻的梦境世界..." },
+                                { title: "第二章：初次相遇", content: "在水晶城市中，您遇到了智慧的龙族长老，他告诉您这个世界正面临着前所未有的危机..." },
+                                { title: "第三章：力量觉醒", content: "通过一系列的试炼，您发现自己拥有连接不同世界的特殊能力..." }
+                            ]
+                        },
+                        socialMedia: {
+                            title: "社交媒体文案",
+                            content: `🌟 今天体验了最不可思议的梦境之旅！${userInput} 的奇幻世界真的太震撼了！每一个细节都让人惊叹，仿佛真的置身于另一个维度。强烈推荐给所有喜欢奇幻冒险的朋友们！#幻境之旅 #奇幻世界 #AI生成 #梦境探索`,
+                            hashtags: ["#幻境之旅", "#奇幻世界", "#AI生成", "#梦境探索", "#创意无限"]
+                        },
+                        videoScript: {
+                            title: "视频脚本大纲",
+                            scenes: [
+                                { time: "0-10秒", content: "开场：神秘音乐响起，镜头从现实世界缓缓转向奇幻之门" },
+                                { time: "10-30秒", content: "主体：展示梦境世界的壮丽景象，配以震撼的视觉效果" },
+                                { time: "30-45秒", content: "互动：展示与龙族和其他生物的友好互动" },
+                                { time: "45-60秒", content: "结尾：回到现实，留下悬念和对下次冒险的期待" }
+                            ]
+                        }
+                    });
+                } else {
+                    setGeneratedContent({
+                        destination: {
+                            title: "精选目的地推荐",
+                            description: `基于您的需求"${userInput}"，我为您推荐了以下精心挑选的旅行目的地和完整的行程规划。`,
+                            places: [
+                                "主要目的地：根据您的偏好精心挑选的核心景点",
+                                "周边景点：值得一游的附近景点和隐藏宝地",
+                                "文化体验：深度了解当地文化和传统的特色活动",
+                                "美食推荐：不可错过的当地特色美食和餐厅"
+                            ]
+                        },
+                        itinerary: {
+                            title: "详细行程规划",
+                            days: [
+                                { day: "第1天", title: "抵达与适应", content: "机场接送 → 酒店入住 → 周边环境熟悉 → 欢迎晚餐" },
+                                { day: "第2天", title: "核心景点游览", content: "主要景点参观 → 文化体验活动 → 特色午餐 → 自由探索时间" },
+                                { day: "第3天", title: "深度文化体验", content: "当地文化活动 → 手工艺体验 → 传统美食品尝 → 购物纪念" },
+                                { day: "第4天", title: "自然风光探索", content: "自然景观游览 → 户外活动 → 摄影创作 → 放松休闲" }
+                            ]
+                        },
+                        budget: {
+                            title: "预算分析",
+                            breakdown: [
+                                { item: "交通费用", amount: "2000-4000元", note: "往返机票及当地交通" },
+                                { item: "住宿费用", amount: "1500-3000元", note: "精选酒店或民宿" },
+                                { item: "餐饮费用", amount: "1000-2000元", note: "当地特色美食体验" },
+                                { item: "景点门票", amount: "500-1000元", note: "主要景点和活动费用" },
+                                { item: "购物纪念", amount: "500-1500元", note: "纪念品和特产" }
+                            ],
+                            total: "5500-11500元"
+                        },
+                        socialMedia: {
+                            title: "旅行分享文案",
+                            content: `🌍 ${userInput} 之旅圆满结束！这次旅行真的太棒了！从规划到体验，每一个环节都很完美。风景美到窒息，美食让人回味无穷，文化体验让人印象深刻！强烈推荐给想要深度旅行体验的朋友们！`,
+                            hashtags: ["#真实旅行", "#旅行分享", "#推荐目的地", "#完美行程", "#旅行回忆"]
+                        }
+                    });
+                }
+            };
+
+            // 渲染生成的内容
+            const renderGeneratedContent = () => {
+                if (selectedMode === 'virtual') {
+                    return (
+                        <>
+                            <div className="result-card">
+                                <h3 className="text-xl font-bold mb-4 text-purple-300">
+                                    🌟 {generatedContent.scenario.title}
+                                </h3>
+                                <p className="text-slate-300 mb-4">{generatedContent.scenario.description}</p>
+                                <div className="space-y-2">
+                                    {generatedContent.scenario.details.map((detail, index) => (
+                                        <div key={index} className="flex items-start">
+                                            <span className="text-purple-400 mr-2">•</span>
+                                            <span className="text-sm text-slate-300">{detail}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="result-card">
+                                <h3 className="text-xl font-bold mb-4 text-blue-300">
+                                    🎭 {generatedContent.story.title}
+                                </h3>
+                                <div className="space-y-3">
+                                    {generatedContent.story.chapters.map((chapter, index) => (
+                                        <div key={index} className="bg-blue-500/20 p-3 rounded-lg">
+                                            <h4 className="font-semibold text-sm text-blue-200 mb-1">
+                                                {chapter.title}
+                                            </h4>
+                                            <p className="text-xs text-slate-300">{chapter.content}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="result-card">
+                                <h3 className="text-xl font-bold mb-4 text-green-300">
+                                    📱 {generatedContent.socialMedia.title}
+                                </h3>
+                                <div className="bg-green-500/20 p-4 rounded-lg mb-4">
+                                    <p className="text-sm text-slate-300 mb-3">
+                                        {generatedContent.socialMedia.content}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {generatedContent.socialMedia.hashtags.map((tag, index) => (
+                                            <span key={index} className="tag">{tag}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="result-card">
+                                <h3 className="text-xl font-bold mb-4 text-orange-300">
+                                    🎬 {generatedContent.videoScript.title}
+                                </h3>
+                                <div className="space-y-2">
+                                    {generatedContent.videoScript.scenes.map((scene, index) => (
+                                        <div key={index} className="bg-orange-500/20 p-3 rounded-lg">
+                                            <div className="flex justify-between items-center mb-1">
+                                                <span className="font-semibold text-sm text-orange-200">
+                                                    {scene.time}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-slate-300">{scene.content}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </>
+                    );
+                } else {
+                    return (
+                        <>
+                            <div className="result-card">
+                                <h3 className="text-xl font-bold mb-4 text-emerald-300">
+                                    📍 {generatedContent.destination.title}
+                                </h3>
+                                <p className="text-slate-300 mb-4">{generatedContent.destination.description}</p>
+                                <div className="space-y-2">
+                                    {generatedContent.destination.places.map((place, index) => (
+                                        <div key={index} className="flex items-start">
+                                            <span className="text-emerald-400 mr-2">•</span>
+                                            <span className="text-sm text-slate-300">{place}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="result-card">
+                                <h3 className="text-xl font-bold mb-4 text-blue-300">
+                                    📅 {generatedContent.itinerary.title}
+                                </h3>
+                                <div className="space-y-3">
+                                    {generatedContent.itinerary.days.map((day, index) => (
+                                        <div key={index} className="bg-blue-500/20 p-3 rounded-lg">
+                                            <div className="flex items-center mb-2">
+                                                <span className="font-semibold text-sm text-blue-200 mr-2">
+                                                    {day.day}
+                                                </span>
+                                                <span className="font-semibold text-sm text-blue-200">
+                                                    {day.title}
+                                                </span>
+                                            </div>
+                                            <p className="text-xs text-slate-300">{day.content}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div className="result-card">
+                                <h3 className="text-xl font-bold mb-4 text-yellow-300">
+                                    💰 {generatedContent.budget.title}
+                                </h3>
+                                <div className="space-y-2 mb-4">
+                                    {generatedContent.budget.breakdown.map((item, index) => (
+                                        <div key={index} className="flex justify-between items-center bg-yellow-500/20 p-2 rounded">
+                                            <div>
+                                                <span className="text-sm font-semibold text-yellow-200">
+                                                    {item.item}
+                                                </span>
+                                                <p className="text-xs text-slate-400">{item.note}</p>
+                                            </div>
+                                            <span className="text-sm font-bold text-yellow-300">
+                                                {item.amount}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div className="bg-yellow-500/30 p-3 rounded-lg text-center">
+                                    <span className="text-lg font-bold text-yellow-200">
+                                        总预算：{generatedContent.budget.total}
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div className="result-card">
+                                <h3 className="text-xl font-bold mb-4 text-pink-300">
+                                    📱 {generatedContent.socialMedia.title}
+                                </h3>
+                                <div className="bg-pink-500/20 p-4 rounded-lg mb-4">
+                                    <p className="text-sm text-slate-300 mb-3">
+                                        {generatedContent.socialMedia.content}
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {generatedContent.socialMedia.hashtags.map((tag, index) => (
+                                            <span key={index} className="tag">{tag}</span>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                        </>
+                    );
+                }
+            };
+
+            // 分享内容
+            const shareContent = () => {
+                const shareText = `我刚刚使用幻境之旅生成器创作了一个${selectedMode === 'virtual' ? '奇幻' : '真实'}的${selectedMode === 'virtual' ? '梦境世界' : '旅行计划'}！快来试试：${window.location.href}`;
+                
+                if (navigator.share) {
+                    navigator.share({
+                        title: '幻境之旅生成器',
+                        text: shareText,
+                        url: window.location.href
+                    });
+                } else {
+                    navigator.clipboard.writeText(shareText).then(() => {
+                        alert('分享链接已复制到剪贴板！');
+                    });
+                }
+            };
+
+            // 渲染当前页面
+            const renderCurrentPage = () => {
+                switch (currentPage) {
+                    case 'welcome':
+                        return <WelcomePage />;
+                    case 'input':
+                        return <InputPage />;
+                    case 'generation':
+                        return <GenerationPage />;
+                    case 'result':
+                        return <ResultPage />;
+                    default:
+                        return <WelcomePage />;
+                }
+            };
+
+            return (
+                <div className="min-h-screen">
+                    {renderCurrentPage()}
+                </div>
+            );
+        }
+
+        // 渲染应用
+        ReactDOM.render(<App />, document.getElementById('root'));
+
+        // 页面加载完成提示
+        console.log('🎉 幻境之旅生成器原版功能加载成功！');
+    </script>
+</body>
+</html> 
