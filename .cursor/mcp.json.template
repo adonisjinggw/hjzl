@@ -1,0 +1,79 @@
+{
+  "_template_info": {
+    "description": "MCP服务配置模板文件",
+    "usage": "复制为mcp.json并填入真实的API密钥",
+    "version": "v1.0.0-template",
+    "services_count": 7,
+    "note": "请将所有占位符替换为实际的API密钥和配置信息"
+  },
+  "mcpServers": {
+    "browser-tools": {
+      "command": "npx",
+      "args": [
+        "@agentdeskai/browser-tools-mcp@latest"
+      ],
+      "env": {
+        "BROWSER_TOOLS_HOST": "127.0.0.1",
+        "BROWSER_TOOLS_PORT": "3025"
+      }
+    },
+    "playwright": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@executeautomation/playwright-mcp-server"
+      ]
+    },
+    "mcp-feedback-collector": {
+      "command": "node",
+      "args": [
+        "path/to/mcp-feedback-collector/dist/cli.js"
+      ],
+      "env": {
+        "MCP_API_KEY": "YOUR_MCP_API_KEY_HERE",
+        "MCP_API_BASE_URL": "https://api.ssopen.top",
+        "MCP_DEFAULT_MODEL": "grok-3",
+        "MCP_WEB_PORT": "5050",
+        "MCP_DIALOG_TIMEOUT": "1800",
+        "NODE_ENV": "production"
+      }
+    },
+    "promptx": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "-f",
+        "dpml-prompt@snapshot",
+        "mcp-server"
+      ]
+    },
+    "Figma": {
+      "url": "http://127.0.0.1:3845/sse"
+    },
+    "GitHub": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "YOUR_GITHUB_PAT_HERE"
+      }
+    },
+    "taskmaster-ai": {
+      "command": "npx",
+      "args": ["-y", "--package=task-master-ai", "task-master-ai"],
+      "env": {
+        "ANTHROPIC_API_KEY": "YOUR_ANTHROPIC_API_KEY_HERE",
+        "PERPLEXITY_API_KEY": "YOUR_PERPLEXITY_API_KEY_HERE",
+        "OPENAI_API_KEY": "YOUR_OPENAI_API_KEY_HERE",
+        "GOOGLE_API_KEY": "YOUR_GOOGLE_API_KEY_HERE",
+        "MISTRAL_API_KEY": "YOUR_MISTRAL_KEY_HERE",
+        "OPENROUTER_API_KEY": "YOUR_OPENROUTER_API_KEY_HERE",
+        "XAI_API_KEY": "YOUR_XAI_KEY_HERE",
+        "AZURE_OPENAI_API_KEY": "YOUR_AZURE_KEY_HERE",
+        "OLLAMA_API_KEY": "YOUR_OLLAMA_API_KEY_HERE"
+      }
+    }
+  }
+} 
